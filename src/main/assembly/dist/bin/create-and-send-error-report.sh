@@ -19,8 +19,8 @@ if [ "$EASY_ACCOUNT" == "-" ]; then
 fi
 
 DATE=$(date +%Y-%m-%d)
-REPORT_ERROR=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-$DATE.txt
-REPORT_ERROR_24=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-yesterday-$DATE.txt
+REPORT_ERROR=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-$DATE.csv
+REPORT_ERROR_24=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
 
 
 if [ "$FROM" == "" ]; then
