@@ -17,11 +17,11 @@ package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.scalatra.{ Ok, ScalatraServlet }
+import org.scalatra._
 
 import java.io.StringReader
-import scala.util.Try
 import scala.util.control.NonFatal
+import scala.util.{ Failure, Success, Try }
 
 class EasyManageDepositServlet(app: EasyManageDepositApp,
                                version: String) extends ScalatraServlet with DebugEnhancedLogging {
@@ -30,27 +30,49 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
     Ok(s"EASY Manage Deposit running ($version)")
   }
 
-  put("deposits/:uuid") {
-    for {
+  put("/deposits/:uuid") {
+    val result = for {
+      _ <- checkContentType("text/plain")
       props <- readDepositProperties(request.body)
       uuid = params("uuid")
+      _ = debug(s"Found parameter uuid = $uuid")
       // TODO: check UUID is valid UUID
-
+      _ <- app.saveDepositProperties(uuid, props)
     } yield ()
-    Ok()
+
+    result match {
+      case Success(_) => Ok()
+      case Failure(e: IllegalArgumentException) if e.getMessage.startsWith("Media type") => UnsupportedMediaType(e.getMessage)
+      case Failure(e: IllegalArgumentException) => BadRequest(e.getMessage)
+      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
+    }
   }
 
-  get("deposits/:uuid") {
+  get("/deposits/:uuid") {
+//    contentType = "text/plain"
+//    app.getDepositProperties(params("uuid")) match {
+//      case Success(Some(props))
+//
+//    }
+  }
 
-
+  private def checkContentType(expected: String): Try[Unit] = {
+    if (request.contentType.contains(expected)) Success(())
+    else Failure(new IllegalArgumentException(s"Media type must be '$expected', found '${ request.contentType.getOrElse("nothing") }'"))
   }
 
   private def readDepositProperties(s: String): Try[PropertiesConfiguration] = Try {
+    trace(s)
     new PropertiesConfiguration() {
       setDelimiterParsingDisabled(true)
       load(new StringReader(s))
-      //containsKey()
-      //TODO: check if minimally required keys are present
+      checkMandatoryKey(this, "status.label")
+      checkMandatoryKey(this, "status.description")
+      checkMandatoryKey(this, "depositor.userId")
     }
+  }
+
+  private def checkMandatoryKey(props: PropertiesConfiguration, key: String): Unit = {
+    if (!props.containsKey(key)) throw new IllegalArgumentException(s"Missing mandatory key: '$key'")
   }
 }

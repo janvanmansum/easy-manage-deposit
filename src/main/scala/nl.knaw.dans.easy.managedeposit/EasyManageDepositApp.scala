@@ -15,15 +15,13 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import com.yourmediashelf.fedora.client.{ FedoraClient, FedoraCredentials }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import nl.knaw.dans.lib.string._
 import org.apache.commons.configuration.PropertiesConfiguration
 
-import java.net.{ URI, URL }
-import java.nio.file.{ Files, Path, Paths }
+import java.net.URI
+import java.nio.file.{ Files, Path }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
@@ -32,29 +30,28 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   override val fedora: Fedora = configuration.fedora
   override val landingPageBaseUrl: URI = configuration.landingPageBaseUrl
 
-  val database = new Database(
+  private val database = new Database(
     url = configuration.databaseUrl,
     user = configuration.databaseUser,
     password = configuration.databasePassword,
     driver = configuration.databaseDriver)
   logger.info("Initializing database connection...")
   database.initConnectionPool()
-  logger.info("Database connection initialized.")
-
-  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
+    .doIfSuccess { _ =>  logger.info("Database connection initialized.") }
+    .doIfFailure { case e: Throwable =>  throw new IllegalStateException("Cannot connect to database", e) }
+  private val propsTable = new DepositPropertiesTable(database)
 
   def saveDepositProperties(uuid: String, props: PropertiesConfiguration): Try[Unit] = {
-
-    ???
+    trace(uuid, props)
+    propsTable.save(uuid, props)
   }
 
-
-
-
-  def loadDepositProperties(uuid: String): Try[PropertiesConfiguration] = {
-
-    ???
+  def getDepositProperties(uuid: String): Try[Option[PropertiesConfiguration]] = {
+    trace(uuid)
+    propsTable.get(uuid)
   }
+
+  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnDatamanager: Option[Datamanager], filterOnAge: Option[Age], location: String): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnDatamanager, filterOnAge, location))
@@ -190,5 +187,4 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       .collectFirst { case manager if manager.getFedoraIdentifier.contains(easyDatasetId) => manager }
       .getOrElse(throw new IllegalArgumentException(s"No deposit found for datatsetId $easyDatasetId"))
   }
-
 }

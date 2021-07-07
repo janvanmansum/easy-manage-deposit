@@ -41,7 +41,7 @@ class Database(url: URI, user: String, password: String, driver: String) extends
   }
 
   def initConnectionPool(): Try[Unit] = Try {
-    logger.info("Creating database connection ...")
+    logger.info("Creating database connection ... ")
     pool = createConnectionPool
     logger.info(s"Database connected with URL = ${url.toASCIIString}, user = $user, password = ****")
   }
@@ -68,11 +68,13 @@ class Database(url: URI, user: String, password: String, driver: String) extends
    * @return `Success` if the actions performed on the database were successful; `Failure` otherwise
    */
   def doTransaction[T](actionFunc: Connection => Try[T]): Try[T] = {
+    trace(())
     managed(pool.getConnection)
       .map(connection => {
         connection.setAutoCommit(false)
         val savepoint = connection.setSavepoint()
 
+        debug("Calling transation function")
         actionFunc(connection)
           .doIfSuccess(_ => {
             connection.commit()
