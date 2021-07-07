@@ -16,8 +16,11 @@
 package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.{ Ok, ScalatraServlet }
 
+import java.io.StringReader
+import scala.util.Try
 import scala.util.control.NonFatal
 
 class EasyManageDepositServlet(app: EasyManageDepositApp,
@@ -27,7 +30,27 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
     Ok(s"EASY Manage Deposit running ($version)")
   }
 
+  put("deposits/:uuid") {
+    for {
+      props <- readDepositProperties(request.body)
+      uuid = params("uuid")
+      // TODO: check UUID is valid UUID
+
+    } yield ()
+    Ok()
+  }
+
+  get("deposits/:uuid") {
 
 
+  }
 
+  private def readDepositProperties(s: String): Try[PropertiesConfiguration] = Try {
+    new PropertiesConfiguration() {
+      setDelimiterParsingDisabled(true)
+      load(new StringReader(s))
+      //containsKey()
+      //TODO: check if minimally required keys are present
+    }
+  }
 }

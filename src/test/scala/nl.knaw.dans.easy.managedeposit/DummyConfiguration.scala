@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-object DummyConfiguration extends Configuration2(
+object DummyConfiguration extends Configuration(
   version = "0.0.0",
   serverPort = 20240,
   databaseUrl = null,

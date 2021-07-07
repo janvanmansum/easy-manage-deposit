@@ -20,6 +20,7 @@ import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
+import org.apache.commons.configuration.PropertiesConfiguration
 
 import java.net.{ URI, URL }
 import java.nio.file.{ Files, Path, Paths }
@@ -27,7 +28,7 @@ import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
-class EasyManageDepositApp(configuration: Configuration2) extends DebugEnhancedLogging with Curation {
+class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
   override val fedora: Fedora = configuration.fedora
   override val landingPageBaseUrl: URI = configuration.landingPageBaseUrl
 
@@ -36,9 +37,24 @@ class EasyManageDepositApp(configuration: Configuration2) extends DebugEnhancedL
     user = configuration.databaseUser,
     password = configuration.databasePassword,
     driver = configuration.databaseDriver)
-
+  logger.info("Initializing database connection...")
+  database.initConnectionPool()
+  logger.info("Database connection initialized.")
 
   private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
+
+  def saveDepositProperties(uuid: String, props: PropertiesConfiguration): Try[Unit] = {
+
+    ???
+  }
+
+
+
+
+  def loadDepositProperties(uuid: String): Try[PropertiesConfiguration] = {
+
+    ???
+  }
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnDatamanager: Option[Datamanager], filterOnAge: Option[Age], location: String): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnDatamanager, filterOnAge, location))

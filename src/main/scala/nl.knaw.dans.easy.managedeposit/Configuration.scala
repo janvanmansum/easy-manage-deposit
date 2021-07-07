@@ -25,7 +25,7 @@ import java.net.{ URI, URL }
 import java.nio.file.{ Files, Path, Paths }
 import scala.io.Source
 
-case class Configuration2(version: String,
+case class Configuration(version: String,
                           serverPort: Int,
                           databaseUrl: URI,
                           databaseUser: String,
@@ -38,10 +38,9 @@ case class Configuration2(version: String,
                           landingPageBaseUrl: URI,
                           dansDoiPrefixes: List[String])
 
-
 object Configuration {
 
-  def apply(home: Path): Configuration2 = {
+  def apply(home: Path): Configuration = {
     val cfgPath = Seq(
       Paths.get(s"/etc/opt/dans.knaw.nl/easy-manage-deposit/"),
       home.resolve("cfg"))
@@ -56,7 +55,7 @@ object Configuration {
       properties.getString("fedora.user"),
       properties.getString("fedora.password"))
 
-    Configuration2(
+    Configuration(
       version = managed(Source.fromFile(home.resolve("bin/version").toFile)).acquireAndGet(_.mkString),
       serverPort = properties.getInt("daemon.http.port"),
       databaseUrl = new URI(properties.getString("database.url")),
