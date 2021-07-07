@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.DateTime
 import resource.managed
 
 import java.io.{ StringReader, StringWriter }
@@ -63,30 +62,19 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |WHERE uuid = ?
         """.stripMargin
 
-  def save(uuid: String, props: PropertiesConfiguration): Try[Unit] = {
-    trace(uuid, props)
+  def save(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
+    trace(uuid, props, propsText)
     for {
       optPropString <- database.doTransaction(implicit c => select(uuid))
       _ = debug(s"Found result for $uuid?: ${ optPropString.isDefined }")
       _ <- optPropString
-        .map(_ => database.doTransaction(implicit c => update(uuid, props)))
-        .getOrElse(database.doTransaction(implicit c => insert(uuid, props)))
+        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText)))
+        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText)))
     } yield ()
   }
 
-  def get(uuid: String): Try[Option[PropertiesConfiguration]] = {
-    for {
-      optText <- database.doTransaction(implicit c => select(uuid))
-      optProps = optText.map {
-        t => {
-          new PropertiesConfiguration() {
-            setDelimiterParsingDisabled(true)
-            load(new StringReader(t))
-          }
-        }
-      }
-    }
-    yield optProps
+  def get(uuid: String): Try[Option[String]] = {
+    database.doTransaction(implicit c => select(uuid))
   }
 
   private def select(uuid: String)(implicit c: Connection): Try[Option[String]] = {
@@ -107,18 +95,14 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       }).tried
   }
 
-  private def insert(uuid: String, props: PropertiesConfiguration)(implicit c: Connection): Try[Unit] = {
+  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props)
-
-    val sw = new StringWriter()
-    props.save(sw)
-    debug(s"Properties to save: ${sw.toString}")
 
     managed(c.prepareStatement(insertQuery))
       .map(ps => {
         ps.setString(1, uuid)
         ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()))
-        ps.setString(3, sw.toString)
+        ps.setString(3, propsText)
         ps.setString(4, props.getString("status.label"))
         ps.setString(5, props.getString("depositor.userId"))
         ps.setString(6, props.getString("curation.datamanager.userId", ""))
@@ -126,16 +110,13 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       }).tried.map(_ => ())
   }
 
-  private def update(uuid: String, props: PropertiesConfiguration)(implicit c: Connection): Try[Unit] = {
+  private def update(uuid: String, props: PropertiesConfiguration, propsText: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props)
-
-    val sw = new StringWriter()
-    props.save(sw)
 
     managed(c.prepareStatement(updateQuery))
       .map(ps => {
         ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()))
-        ps.setString(2, sw.toString)
+        ps.setString(2, propsText)
         ps.setString(3, props.getString("status.label"))
         ps.setString(4, props.getString("depositor.userId"))
         ps.setString(5, props.getString("curation.datamanager.userId", ""))

@@ -41,12 +41,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     .doIfFailure { case e: Throwable =>  throw new IllegalStateException("Cannot connect to database", e) }
   private val propsTable = new DepositPropertiesTable(database)
 
-  def saveDepositProperties(uuid: String, props: PropertiesConfiguration): Try[Unit] = {
-    trace(uuid, props)
-    propsTable.save(uuid, props)
+  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
+    trace(uuid, props, propsText)
+    propsTable.save(uuid, props, propsText)
   }
 
-  def getDepositProperties(uuid: String): Try[Option[PropertiesConfiguration]] = {
+  def getDepositProperties(uuid: String): Try[Option[String]] = {
     trace(uuid)
     propsTable.get(uuid)
   }

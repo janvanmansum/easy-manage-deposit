@@ -37,7 +37,7 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
       uuid = params("uuid")
       _ = debug(s"Found parameter uuid = $uuid")
       // TODO: check UUID is valid UUID
-      _ <- app.saveDepositProperties(uuid, props)
+      _ <- app.saveDepositProperties(uuid, props, request.body)
     } yield ()
 
     result match {
@@ -49,11 +49,13 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
   }
 
   get("/deposits/:uuid") {
-//    contentType = "text/plain"
-//    app.getDepositProperties(params("uuid")) match {
-//      case Success(Some(props))
-//
-//    }
+    contentType = "text/plain"
+    val uuid = params("uuid")
+    app.getDepositProperties(uuid) match {
+      case Success(Some(propsText)) => Ok(propsText)
+      case Success(None) => NotFound(s"No deposit.properties found for uuid = $uuid")
+      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
+    }
   }
 
   private def checkContentType(expected: String): Try[Unit] = {
