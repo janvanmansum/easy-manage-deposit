@@ -27,10 +27,8 @@ import scala.util.{ Failure, Success }
 
 class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
-  private val configuration = Configuration("1.0.0", createProperties())
-  private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
-    .asScala.toList
-    .map(prefix => prefix.asInstanceOf[String])
+  private val configuration = DummyConfiguration
+  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
 
   private val depositDirWithoutProperties = depositDir / "deposit-no-properties"
   private val depositDirWithoutPropertiesPath = depositDirWithoutProperties.path

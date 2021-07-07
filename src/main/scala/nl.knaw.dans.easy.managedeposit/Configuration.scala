@@ -25,8 +25,6 @@ import java.net.{ URI, URL }
 import java.nio.file.{ Files, Path, Paths }
 import scala.io.Source
 
-case class Configuration(version: String, properties: PropertiesConfiguration)
-
 case class Configuration2(version: String,
                           serverPort: Int,
                           databaseUrl: URI,
@@ -43,20 +41,7 @@ case class Configuration2(version: String,
 
 object Configuration {
 
-  def apply(home: Path): Configuration = {
-    val cfgPath = Seq(
-      Paths.get(s"/etc/opt/dans.knaw.nl/easy-manage-deposit/"),
-      home.resolve("cfg"))
-      .find(Files.exists(_))
-      .getOrElse { throw new IllegalStateException("No configuration directory found") }
-
-    new Configuration(
-      version = managed(Source.fromFile(home.resolve("bin/version").toFile)).acquireAndGet(_.mkString),
-      properties = new PropertiesConfiguration(cfgPath.resolve("application.properties").toFile)
-    )
-  }
-
-  def apply2(home: Path): Configuration2 = {
+  def apply(home: Path): Configuration2 = {
     val cfgPath = Seq(
       Paths.get(s"/etc/opt/dans.knaw.nl/easy-manage-deposit/"),
       home.resolve("cfg"))

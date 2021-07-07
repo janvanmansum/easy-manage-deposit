@@ -27,7 +27,7 @@ import scala.util.Success
 
 class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
 
-  private val app = new EasyManageDepositApp(createDummyConfiguration())
+  private val app = new EasyManageDepositApp(DummyConfiguration)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -59,35 +59,5 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
       case Success(n) =>
         n should have size 0
     }
-  }
-
-  private def createDummyConfiguration(): Configuration2 = {
-    Configuration2(
-      version = "0.0.0",
-      serverPort = 20240,
-      databaseUrl = null,
-      databaseUser = "",
-      databasePassword = "",
-      databaseDriver = "",
-      fedora = null,
-      sword2DepositsDir = null,
-      ingestFlowInbox = null,
-      ingestFlowInboxArchived = None,
-      landingPageBaseUrl = null,
-      dansDoiPrefixes = List.empty[String]
-    )
-  }
-
-
-  private def createProperties(): PropertiesConfiguration = {
-    val properties = new PropertiesConfiguration()
-    properties.setProperty("easy-sword2", "")
-    properties.setProperty("easy-ingest-flow-inbox", "")
-    properties.setProperty("easy-ingest-flow-inbox-archived", "")
-    properties.setProperty("fedora.url", "http://something")
-    properties.setProperty("fedora.user", "")
-    properties.setProperty("fedora.password", "")
-    properties.setProperty("landing-pages.base-url", "")
-    properties
   }
 }
