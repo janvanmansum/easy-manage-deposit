@@ -21,7 +21,7 @@ import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand, ValueConvert
 import java.nio.file.Path
 import scala.language.{ postfixOps, reflectiveCalls }
 
-class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
+class CommandLineOptions(args: Array[String], version: String) extends ScallopConf(args) {
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-manage-deposit"
@@ -39,7 +39,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName sync-fedora-state <easy-dataset-id>
        |  $printedName run-service
      """.stripMargin
-  version(s"$printedName v${ configuration.version }")
+  version(s"$printedName v$version")
   banner(
     s"""
        |  $description

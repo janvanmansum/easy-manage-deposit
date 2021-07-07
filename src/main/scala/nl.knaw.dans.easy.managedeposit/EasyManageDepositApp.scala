@@ -27,21 +27,18 @@ import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
-class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
+class EasyManageDepositApp(configuration: Configuration2) extends DebugEnhancedLogging with Curation {
+  override val fedora: Fedora = configuration.fedora
+  override val landingPageBaseUrl: URI = configuration.landingPageBaseUrl
 
-  private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
-  private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
-  private val ingestFlowInboxArchived = configuration.properties.getString("easy-ingest-flow-inbox-archived").toOption.map(Paths.get(_)).filter(Files.exists(_))
-  private val fedoraCredentials = new FedoraCredentials(
-    new URL(configuration.properties.getString("fedora.url")),
-    configuration.properties.getString("fedora.user"),
-    configuration.properties.getString("fedora.password"))
-  val fedora = new Fedora(new FedoraClient(fedoraCredentials))
-  val landingPageBaseUrl = new URI(configuration.properties.getString("landing-pages.base-url"))
+  val database = new Database(
+    url = configuration.databaseUrl,
+    user = configuration.databaseUser,
+    password = configuration.databasePassword,
+    driver = configuration.databaseDriver)
 
-  private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
-    .asScala.toList
-    .map(prefix => prefix.asInstanceOf[String])
+
+  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnDatamanager: Option[Datamanager], filterOnAge: Option[Age], location: String): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnDatamanager, filterOnAge, location))
@@ -116,25 +113,25 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def summary(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, datamanager, age, "SWORD2")
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
-    val ingestFlowArchivedDeposits = ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
+    val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
+    val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
     ReportGenerator.outputSummary(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits, depositor)(Console.out)
     "End of summary report."
   }
 
   def createFullReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, datamanager, age, "SWORD2")
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
-    val ingestFlowArchivedDeposits = ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
+    val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
+    val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
     ReportGenerator.outputFullReport(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits)(Console.out)
     "End of full report."
   }
 
   def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, datamanager, age, "SWORD2")
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
-    val ingestFlowArchivedDeposits = ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
+    val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
+    val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
     ReportGenerator.outputErrorReport(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits)(Console.out)
     "End of error report."
   }
@@ -146,8 +143,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   def cleanDeposits(deleteParams: DeleteParameters): Try[FeedBackMessage] = {
     for {
-      sword2DeletedDeposits <- deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams, "SWORD2")
-      ingestFlowDeletedDeposits <- deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams, "INGEST_FLOW")
+      sword2DeletedDeposits <- deleteDepositsFromDepositsDir(configuration.sword2DepositsDir, deleteParams, "SWORD2")
+      ingestFlowDeletedDeposits <- deleteDepositsFromDepositsDir(configuration.ingestFlowInbox, deleteParams, "INGEST_FLOW")
     } yield {
       if (deleteParams.output || !deleteParams.doUpdate)
         ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
@@ -164,7 +161,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   private def validateUserCanReadAllDepositsInIngestFlowBox(): Try[Unit] = {
-    val deposits = Files.newDirectoryStream(ingestFlowInbox).asScala.toList
+    val deposits = Files.newDirectoryStream(configuration.ingestFlowInbox).asScala.toList
     getDepositManagers(deposits)
       .map(_.validateUserCanReadTheDepositDirectoryAndTheDepositProperties())
       .collectFirst { case f @ Failure(_: Exception) => f }
@@ -172,9 +169,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   private def findDepositManagerForDatasetId(easyDatasetId: DatasetId): Try[DepositManager] = Try {
-    ingestFlowInbox
+    configuration.ingestFlowInbox
       .list(_.collect { case deposit if Files.isDirectory(deposit) => new DepositManager(deposit) })
       .collectFirst { case manager if manager.getFedoraIdentifier.contains(easyDatasetId) => manager }
       .getOrElse(throw new IllegalArgumentException(s"No deposit found for datatsetId $easyDatasetId"))
   }
+
 }

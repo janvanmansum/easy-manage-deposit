@@ -21,11 +21,13 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inside.inside
 
+import java.net.URI
+import java.nio.file.Path
 import scala.util.Success
 
 class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
 
-  private val app = new EasyManageDepositApp(Configuration("1.0.0", createProperties()))
+  private val app = new EasyManageDepositApp(createDummyConfiguration())
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -58,6 +60,24 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
         n should have size 0
     }
   }
+
+  private def createDummyConfiguration(): Configuration2 = {
+    Configuration2(
+      version = "0.0.0",
+      serverPort = 20240,
+      databaseUrl = null,
+      databaseUser = "",
+      databasePassword = "",
+      databaseDriver = "",
+      fedora = null,
+      sword2DepositsDir = null,
+      ingestFlowInbox = null,
+      ingestFlowInboxArchived = None,
+      landingPageBaseUrl = null,
+      dansDoiPrefixes = List.empty[String]
+    )
+  }
+
 
   private def createProperties(): PropertiesConfiguration = {
     val properties = new PropertiesConfiguration()

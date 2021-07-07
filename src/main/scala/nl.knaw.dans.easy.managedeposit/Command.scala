@@ -27,8 +27,8 @@ import scala.util.{ Failure, Try }
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
 
-  val configuration = Configuration(Paths.get(System.getProperty("app.home")))
-  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
+  val configuration = Configuration.apply2(Paths.get(System.getProperty("app.home")))
+  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration.version)
   val app = new EasyManageDepositApp(configuration)
 
   @tailrec
@@ -82,7 +82,7 @@ object Command extends App with DebugEnhancedLogging {
     }
 
   private def runAsService(app: EasyManageDepositApp): Try[FeedBackMessage] = Try {
-    val service = new EasyManageDepositService(configuration.properties.getString("daemon.http.port").toInt, Map(
+    val service = new EasyManageDepositService(configuration.serverPort, Map(
       "/" -> new EasyManageDepositServlet(app, configuration.version),
     ))
     Runtime.getRuntime.addShutdownHook(new Thread("service-shutdown") {

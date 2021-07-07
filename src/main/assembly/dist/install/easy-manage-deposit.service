@@ -1,0 +1,18 @@
+[Unit]
+Description=EASY Manage Deposit Service
+
+[Service]
+ExecStart=/bin/java \
+   $INITIAL_HEAP_SIZE \
+   -Dlogback.configurationFile=/etc/opt/dans.knaw.nl/easy-manage-deposit/logback-service.xml \
+   -Dapp.home=/opt/dans.knaw.nl/easy-manage-deposit \
+   -Dorg.scalatra.environment="production" \
+   -jar /opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit.jar run-service
+# Java returns 143 even if the SIGTERM was handled correctly.
+SuccessExitStatus=143
+
+User=easy-manage-deposit
+Group=easy-manage-deposit
+
+[Install]
+WantedBy=multi-user.target
