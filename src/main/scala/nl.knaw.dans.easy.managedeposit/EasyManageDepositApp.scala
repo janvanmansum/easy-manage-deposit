@@ -19,8 +19,11 @@ import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.io.FileUtils
 
+import java.io.StringReader
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
@@ -37,8 +40,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     driver = configuration.databaseDriver)
   logger.info("Initializing database connection...")
   database.initConnectionPool()
-    .doIfSuccess { _ =>  logger.info("Database connection initialized.") }
-    .doIfFailure { case e: Throwable =>  throw new IllegalStateException("Cannot connect to database", e) }
+    .doIfSuccess { _ => logger.info("Database connection initialized.") }
+    .doIfFailure { case e: Throwable => throw new IllegalStateException("Cannot connect to database", e) }
   private val propsTable = new DepositPropertiesTable(database)
 
   def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
@@ -49,6 +52,36 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def getDepositProperties(uuid: String): Try[Option[String]] = {
     trace(uuid)
     propsTable.get(uuid)
+  }
+
+  def loadSingleDepositProperties(path: Path): Try[String] = Try {
+    val propsFile = path.resolve("deposit.properties")
+    val uuid = path.getFileName.toString
+    if (Files.exists(propsFile)) {
+      val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
+      readDepositProperties(propsString)
+        .map(p => saveDepositProperties(uuid, p, propsString))
+        .map(_ => s"Saved deposit.properties for deposit $uuid")
+        .unsafeGetOrThrow
+    }
+    else {
+      throw new IllegalArgumentException(s"No such deposit $path")
+    }
+  }
+
+  def readDepositProperties(s: String): Try[PropertiesConfiguration] = Try {
+    trace(s)
+    new PropertiesConfiguration() {
+      setDelimiterParsingDisabled(true)
+      load(new StringReader(s))
+      checkMandatoryKey(this, "status.label")
+      checkMandatoryKey(this, "status.description")
+      checkMandatoryKey(this, "depositor.userId")
+    }
+  }
+
+  private def checkMandatoryKey(props: PropertiesConfiguration, key: String): Unit = {
+    if (!props.containsKey(key)) throw new IllegalArgumentException(s"Missing mandatory key: '$key'")
   }
 
   private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes

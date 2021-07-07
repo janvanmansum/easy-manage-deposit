@@ -70,6 +70,8 @@ object Command extends App with DebugEnhancedLogging {
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
+    case (loadProps @ commandLine.loadProperties) :: Nil =>
+      app.loadSingleDepositProperties(loadProps.directory())
     case commandLine.runService :: Nil => runAsService(app)
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
