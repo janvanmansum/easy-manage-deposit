@@ -70,6 +70,7 @@ object Command extends App with DebugEnhancedLogging {
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
+    case commandLine.runService :: Nil => runAsService(app)
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
 
@@ -79,5 +80,22 @@ object Command extends App with DebugEnhancedLogging {
       logger.error("A fatal exception occurred", t)
       System.exit(1)
     }
+
+  private def runAsService(app: EasyManageDepositApp): Try[FeedBackMessage] = Try {
+    val service = new EasyManageDepositService(configuration.properties.getString("daemon.http.port").toInt, Map(
+      "/" -> new EasyManageDepositServlet(app, configuration.version),
+    ))
+    Runtime.getRuntime.addShutdownHook(new Thread("service-shutdown") {
+      override def run(): Unit = {
+        service.stop()
+        service.destroy()
+      }
+    })
+
+    service.start()
+    Thread.currentThread.join()
+    "Service terminated normally."
+  }
+
 }
 

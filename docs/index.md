@@ -14,6 +14,7 @@ SYNOPSIS
             [-l, --new-state-label <state>] [-n, --new-state-description <description>] \
             [-f, --force] [-o, --output] [--do-update] [<depositor>]
     easy-manage-deposit sync-fedora-state <easy-dataset-id>
+    easy-manage-deposit run-service
 
 ARGUMENTS
 --------
@@ -102,6 +103,10 @@ ARGUMENTS
            trailing arguments:
             easy-dataset-id (required)   The dataset identifier of the deposit which
                                          deposit.properties are being synced with Fedora
+          ---
+
+          Subcommand: run-service - Starts EASY Manage Deposit as a daemon
+          -h, --help   Show help message
           ---
 
 

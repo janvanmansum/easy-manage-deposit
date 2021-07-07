@@ -37,6 +37,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |            [-l, --new-state-label <state>] [-n, --new-state-description <description>] \\
        |            [-f, --force] [-o, --output] [--do-update] [<depositor>]
        |  $printedName sync-fedora-state <easy-dataset-id>
+       |  $printedName run-service
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -127,6 +128,14 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(syncFedoraState)
+
+  val runService = new Subcommand("run-service") {
+    descr(
+      "Starts EASY Manage Deposit as a daemon")
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(runService)
+
 
   footer("")
   verify()
