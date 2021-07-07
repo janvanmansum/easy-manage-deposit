@@ -27,14 +27,16 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-manage-deposit"
   private val SUBCOMMAND_SEPARATOR = "---\n"
-  val description: String = s"""Manages the deposits in the deposit area."""
+  val description: String = s"""Manage DANS deposit directories."""
   val synopsis: String =
     s"""
-       |  $printedName report full [-a, --age <n>] [-m, --datamanager <datamanager>] [<depositor>]
-       |  $printedName report summary [-a, --age <n>] [-m, --datamanager <datamanager>] [<depositor>]
-       |  $printedName report error [-a, --age <n>] [-m, --datamanager <datamanager>] [<depositor>]
+       |  $printedName report full [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
+       |  $printedName report summary [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
+       |  $printedName report error [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
        |  $printedName report raw [<location>]
-       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [--do-update] [<depositor>]
+       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>]  \\
+       |            [-l, --new-state-label <state>] [-n, --new-state-description <description>] \\
+       |            [-f, --force] [-o, --output] [--do-update] [<depositor>]
        |  $printedName sync-fedora-state <easy-dataset-id>
      """.stripMargin
   version(s"$printedName v${ configuration.version }")

@@ -1,0 +1,73 @@
+openapi: 3.0.0
+info:
+  title: EASY Manage Deposit
+  version: 1.0.0
+  description: |
+    This document specifies the EASY Manage Deposit API. It provides access to a database with information
+    about deposits.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: 'https://deasy.dans.knaw.nl'
+    description: Local test VM for EASY
+  - url: 'https://dar.dans.knaw.nl'
+    description: Local test VM for Data Station Archaeology
+  - url: 'https://dss.dans.knaw.nl'
+    description: Local test VM for Data Station SSH
+
+paths:
+  /:
+    get:
+      summary: Returns a description of the service.
+      responses:
+        200:
+          description: Description of the service
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: A plain text, human readable description of the service
+                example: |
+                  EASY Managed Deposit is running
+
+
+  /deposits/{uuid}:
+    parameters:
+      - name: uuid
+        in: path
+        description: the identifier of the deposit
+        schema:
+          type: string
+        required: true
+    get:
+      summary: Retrieves the deposit.properties contents for the deposit with the given UUID
+      responses:
+        200:
+          description: OK. Content `deposit.properties` in body of response.
+        404:
+          description: Not Found. No `deposit.properties` available for the given UUID.
+    put:
+      summary: Adds or overwrites the deposit.properties record for the given UUID.
+      description: |
+        The request body must contain the contents of the `deposit.properties` file to be stored. It must be in Java properties
+        format and at minimum contain values for the following keys:
+
+        * `state.label`
+        * `state.description`
+        * `depositor.userId`
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        200:
+          description: OK. The `deposit.properties` were written to the dabase.
+        201:
+          description: Created. The `deposit.properties` were written to the dabase.
+        400:
+          description: Bad Request. Body was not in Java properties format or did not contain the minimally required fields.
+

@@ -15,12 +15,14 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.io.{ ByteArrayOutputStream, File }
-import java.nio.file.Paths
+import better.files.File
 
+import java.io.ByteArrayOutputStream
+import better.files.File
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.file.Paths
 
 class ReadmeSpec extends AnyFlatSpec with Matchers with CustomMatchers {
 
@@ -37,19 +39,21 @@ class ReadmeSpec extends AnyFlatSpec with Matchers with CustomMatchers {
     mockedStdOut.toString
   }
 
+  private val readMe = File("docs/index.md")
+
   "options in help info" should "be part of README.md" in {
     val lineSeparators = s"(${ System.lineSeparator() })+"
     val options = helpInfo.split(s"${ lineSeparators }Options:$lineSeparators")(1)
     options.trim.length shouldNot be(0)
-    new File("README.md") should containTrimmed(options)
+    readMe should containTrimmed(options)
   }
 
   "synopsis in help info" should "be part of README.md" in {
-    new File("README.md") should containTrimmed(clo.synopsis)
+    readMe should containTrimmed(clo.synopsis)
   }
 
   "description line(s) in help info" should "be part of README.md and pom.xml" in {
-    new File("README.md") should containTrimmed(clo.description)
-    new File("pom.xml") should containTrimmed(clo.description)
+    readMe should containTrimmed(clo.description)
+    File("pom.xml") should containTrimmed(clo.description)
   }
 }
