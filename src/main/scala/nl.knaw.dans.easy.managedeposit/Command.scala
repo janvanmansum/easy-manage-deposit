@@ -15,11 +15,10 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.Paths
-
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import java.nio.file.Paths
 import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.language.reflectiveCalls

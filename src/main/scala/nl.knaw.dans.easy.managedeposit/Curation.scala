@@ -15,13 +15,12 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.net.URI
-
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.easy.managedeposit.FedoraState.FedoraState
 import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import java.net.URI
 import scala.util.{ Failure, Success, Try }
 
 trait Curation extends DebugEnhancedLogging {

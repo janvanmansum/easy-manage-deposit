@@ -15,15 +15,14 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.net.{ URI, URL }
-import java.nio.file.{ Files, Path, Paths }
-
 import com.yourmediashelf.fedora.client.{ FedoraClient, FedoraCredentials }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
 
+import java.net.{ URI, URL }
+import java.nio.file.{ Files, Path, Paths }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
@@ -91,7 +90,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
    *      [ "n/a", "6",   "7", "8"   ],
    *    ]
    * }}}
-   * @param input the sequence of maps to be made into a complete table
+   * @param input        the sequence of maps to be made into a complete table
    * @param defaultValue the value (lazily evaluated) to be used for values that are not available (defaults to `"n/a"`)
    * @return the completed table
    */

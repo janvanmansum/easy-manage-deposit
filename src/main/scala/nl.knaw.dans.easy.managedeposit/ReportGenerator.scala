@@ -15,14 +15,14 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.io.PrintStream
-import java.text.SimpleDateFormat
-import java.util.Calendar
-
 import nl.knaw.dans.easy.managedeposit.Curation.requestChangesDescription
 import nl.knaw.dans.easy.managedeposit.State.{ ARCHIVED, FAILED, INVALID, REJECTED, State, UNKNOWN }
 import org.apache.commons.csv.CSVFormat
 import resource.managed
+
+import java.io.PrintStream
+import java.text.SimpleDateFormat
+import java.util.Calendar
 
 object ReportGenerator {
   private val KB = 1024L
@@ -64,7 +64,7 @@ object ReportGenerator {
           .withHeader(header: _*)
           .withDelimiter(',')
           .withRecordSeparator('\n')
-        
+
         csvFormat.print(printStream)
           .close()
       case Seq(header, data @ _*) =>
@@ -170,9 +170,9 @@ object ReportGenerator {
 
     if (nBytes > 1.1 * TB) formatSize(TB, "T")
     else if (nBytes > 1.1 * GB) formatSize(GB, "G")
-    else if (nBytes > 1.1 * MB) formatSize(MB, "M")
-    else if (nBytes > 1.1 * KB) formatSize(KB, "K")
-    else formatSize(1, "B")
+         else if (nBytes > 1.1 * MB) formatSize(MB, "M")
+              else if (nBytes > 1.1 * KB) formatSize(KB, "K")
+                   else formatSize(1, "B")
   }
 
   private def formatCountAndSize(deposits: Seq[DepositInformation], filterOnState: State, maxStateLength: Int): String = {

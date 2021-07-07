@@ -15,11 +15,10 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.{ Files, Path, Paths }
-
 import org.apache.commons.configuration.PropertiesConfiguration
 import resource.managed
 
+import java.nio.file.{ Files, Path, Paths }
 import scala.io.Source
 
 case class Configuration(version: String, properties: PropertiesConfiguration)

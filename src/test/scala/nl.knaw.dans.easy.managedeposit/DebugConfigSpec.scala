@@ -15,12 +15,11 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.{ Files, Paths }
-
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.file.{ Files, Paths }
 import scala.collection.JavaConverters._
 
 class DebugConfigSpec extends AnyFlatSpec with Matchers {

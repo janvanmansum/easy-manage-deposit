@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.{ Files, Path }
-
 import nl.knaw.dans.easy.managedeposit.DepositManager._
 import nl.knaw.dans.easy.managedeposit.State.{ State, UNKNOWN }
 import nl.knaw.dans.lib.error._
@@ -27,6 +25,7 @@ import org.apache.commons.lang.{ BooleanUtils, StringUtils }
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
 import resource.managed
 
+import java.nio.file.{ Files, Path }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.math.Ordering.{ Long => LongComparator }

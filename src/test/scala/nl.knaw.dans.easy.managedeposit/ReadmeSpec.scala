@@ -16,12 +16,10 @@
 package nl.knaw.dans.easy.managedeposit
 
 import better.files.File
-
-import java.io.ByteArrayOutputStream
-import better.files.File
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
 class ReadmeSpec extends AnyFlatSpec with Matchers with CustomMatchers {

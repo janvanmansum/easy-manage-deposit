@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-
 import better.files.File
 import org.scalatest.matchers.{ MatchResult, Matcher }
 
@@ -34,5 +33,6 @@ trait CustomMatchers {
       )
     }
   }
+
   def containTrimmed(content: String) = new ContentMatcher(content)
 }

@@ -15,14 +15,13 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.io.InputStream
-
 import com.yourmediashelf.fedora.client.FedoraClient
 import com.yourmediashelf.fedora.client.request.RiSearch
 import nl.knaw.dans.easy.managedeposit.FedoraState.FedoraState
 import org.apache.commons.lang.BooleanUtils
 import resource.{ ManagedResource, managed }
 
+import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 import scala.xml.{ Elem, XML }

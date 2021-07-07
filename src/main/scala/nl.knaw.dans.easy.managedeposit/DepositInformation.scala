@@ -50,7 +50,7 @@ case class DepositInformation(depositId: DepositId,
    * getDoiRegisteredFromState derives whether a deposit is registered with Datacite from the deposits state. For new deposits this
    * can be derived from the deposit.properties value 'identifier.dans-doi.registered=yes|no'. Since old deposits don't have this property we
    * use this function, making the reports backwards compatible.
-   **/
+   * */
   private def getDoiRegisteredFromState: String = state match {
     case ARCHIVED => "yes"
     case FAILED => "unknown"

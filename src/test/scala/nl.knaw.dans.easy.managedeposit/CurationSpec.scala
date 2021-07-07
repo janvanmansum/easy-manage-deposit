@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.net.URI
-
 import better.files.File
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.easy.managedeposit.FedoraState.{ DELETED, FedoraState, MAINTENANCE, PUBLISHED }
@@ -24,6 +22,7 @@ import nl.knaw.dans.easy.managedeposit.State._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.BeforeAndAfterEach
 
+import java.net.URI
 import scala.util.{ Failure, Success, Try }
 
 class CurationSpec extends TestSupportFixture

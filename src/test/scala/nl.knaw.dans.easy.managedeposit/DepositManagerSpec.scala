@@ -15,16 +15,15 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.attribute.PosixFilePermission
-
 import better.files.File
 import nl.knaw.dans.easy.managedeposit.State._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeZone }
 import org.scalatest.BeforeAndAfterEach
 
-import scala.util.{ Failure, Success }
+import java.nio.file.attribute.PosixFilePermission
 import scala.collection.JavaConverters._
+import scala.util.{ Failure, Success }
 
 class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
@@ -68,7 +67,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   "properties" should "return the contents of deposit.properties as a key-value map, with an added property 'depositId' -> <deposit dir name>" in {
     val depositManager = new DepositManager(depositOnePath)
     val properties = depositManager.properties
-    properties should contain only (
+    properties should contain only(
       "bag-store.bag-id" -> "aba410b6-1a55-40b2-9ebe-6122aad00285",
       "creation.timestamp" -> "2018-11-08T22:05:53.992Z",
       "state.description" -> "Deposit is valid and ready for post-submission processing",
@@ -416,7 +415,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val depositManager = new DepositManager(ruimteReis01Path)
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     val depositInfo = depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW").toOption.flatten.getOrElse("").toString
-    val result = depositInfo.slice(0, depositInfo.indexOf("2018-11"))   // because timestamp differs in each test run, we compare the contents till the first tiestamp
+    val result = depositInfo.slice(0, depositInfo.indexOf("2018-11")) // because timestamp differs in each test run, we compare the contents till the first tiestamp
     result shouldBe "DepositInformation(aba410b6-1a55-40b2-9ebe-6122aad00285,n/a,None,n/a,user001,SUBMITTED,Deposit is valid and ready for post-submission processing,"
   }
 

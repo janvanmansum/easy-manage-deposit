@@ -15,16 +15,16 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.io.{ ByteArrayOutputStream, PrintStream }
-import java.text.SimpleDateFormat
-import java.util.{ Calendar, UUID }
-
 import nl.knaw.dans.easy.managedeposit.ReportType.ReportType
 import nl.knaw.dans.easy.managedeposit.State._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.Inspectors
 import org.scalatest.matchers.should.Matchers
+
+import java.io.{ ByteArrayOutputStream, PrintStream }
+import java.text.SimpleDateFormat
+import java.util.{ Calendar, UUID }
 
 class ReportGeneratorSpec extends TestSupportFixture
   with Matchers

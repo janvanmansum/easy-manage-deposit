@@ -15,12 +15,11 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.{ Files, Path }
-import java.util.Optional
-
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import resource._
 
+import java.nio.file.{ Files, Path }
+import java.util.Optional
 import scala.collection.JavaConverters._
 
 package object managedeposit {

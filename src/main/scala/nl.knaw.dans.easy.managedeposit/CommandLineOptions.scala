@@ -15,11 +15,10 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.Path
-
 import nl.knaw.dans.easy.managedeposit.State.State
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand, ValueConverter, singleArgConverter }
 
+import java.nio.file.Path
 import scala.language.{ postfixOps, reflectiveCalls }
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
@@ -87,13 +86,13 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
       footer(SUBCOMMAND_SEPARATOR)
     }
     addSubcommand(errorCmd)
-    
+
     val rawCmd = new Subcommand("raw") {
       val location: ScallopOption[Path] = trailArg[Path](name = "location")
-      
+
       validatePathExists(location)
       validatePathIsDirectory(location)
-      
+
       descr("creates a report containing all content of deposit.properties without inferring any properties")
       footer(SUBCOMMAND_SEPARATOR)
     }
@@ -104,7 +103,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
     val dataOnly: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "If specified, the deposit.properties and the container file of the deposit are not deleted")
-    val state: ScallopOption[State] = opt[State](required= true, descr = "The deposits with the specified state argument are deleted")
+    val state: ScallopOption[State] = opt[State](required = true, descr = "The deposits with the specified state argument are deleted")
     val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = -1 <=, descr = "The deposits whose ages are greater than or equal to the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1.")
     val newStateLabel: ScallopOption[State] = opt(short = 'l', descr = "The state label in deposit.properties after the deposit has been deleted")
     val newStateDescription: ScallopOption[String] = opt[String](short = 'n', descr = "The state description in deposit.properties after the deposit has been deleted")
