@@ -28,22 +28,13 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
     Ok(s"EASY Manage Deposit running ($version)")
   }
 
-//  post("/deposits/:uuid/load") {
-//    val result = for {
-//      props <- app.loadSingleDepositProperties()
-//      uuid = params("uuid")
-//      _ = debug(s"Found parameter uuid = $uuid")
-//      // TODO: check UUID is valid UUID
-//      _ <- app.saveDepositProperties(uuid, props, request.body)
-//    } yield ()
-//
-//    result match {
-//      case Success(_) => Ok()
-//      case Failure(e: IllegalArgumentException) if e.getMessage.startsWith("Media type") => UnsupportedMediaType(e.getMessage)
-//      case Failure(e: IllegalArgumentException) => BadRequest(e.getMessage)
-//      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
-//    }
-//  }
+  post("/deposits/:uuid/load") {
+    val uuid = params("uuid")
+    app.loadSingleDepositProperties(uuid) match {
+      case Success(_) => Ok()
+      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
+    }
+  }
 
   get("/deposits/:uuid") {
     contentType = "text/plain"
@@ -53,10 +44,5 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
       case Success(None) => NotFound(s"No deposit.properties found for uuid = $uuid")
       case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
     }
-  }
-
-  private def checkContentType(expected: String): Try[Unit] = {
-    if (request.contentType.contains(expected)) Success(())
-    else Failure(new IllegalArgumentException(s"Media type must be '$expected', found '${ request.contentType.getOrElse("nothing") }'"))
   }
 }
