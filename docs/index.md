@@ -106,10 +106,12 @@ ARGUMENTS
           ---
 
           Subcommand: load-properties - (Re-)loads the deposit properties into the database, overwriting the current records
-            -h, --help   Show help message
+            -l, --location  <arg>   Only load deposits from this location (one of: SWORD2,
+                            INGEST_FLOW, INGEST_FLOW_ARCHIVED
+            -h, --help              Show help message
 
             trailing arguments:
-             uuid (not required)   Only load this deposit
+              uuid (not required)   Only load this deposit
           ---
 
           Subcommand: run-service - Starts EASY Manage Deposit as a daemon
