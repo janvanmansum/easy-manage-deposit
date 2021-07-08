@@ -105,11 +105,20 @@ ARGUMENTS
                                          deposit.properties are being synced with Fedora
           ---
 
+          Subcommand: delete-properties - Deletes selected properties from the databse
+            -l, --location  <arg>   Only delete deposits from this location (one of:
+            SWORD2, INGEST_FLOW, INGEST_FLOW_ARCHIVED
+            -h, --help              Show help message
+        
+            trailing arguments:
+              uuid (not required)   Only load this deposit
+          ---
+        
           Subcommand: load-properties - (Re-)loads the deposit properties into the database, overwriting the current records
             -l, --location  <arg>   Only load deposits from this location (one of: SWORD2,
-                            INGEST_FLOW, INGEST_FLOW_ARCHIVED
+               INGEST_FLOW, INGEST_FLOW_ARCHIVED
             -h, --help              Show help message
-
+        
             trailing arguments:
               uuid (not required)   Only load this deposit
           ---

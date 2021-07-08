@@ -69,6 +69,23 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |WHERE uuid = ?
         """.stripMargin
 
+  private val deleteLocationQuery =
+    """
+      |DELETE FROM deposit_properties
+      |WHERE location = ?
+      |""".stripMargin
+
+  private val deleteUuidQuery =
+    """
+      |DELETE FROM deposit_properties
+      |WHERE uuid = ?
+      |""".stripMargin
+
+  private val deleteAllQuery =
+    """
+      |DELETE FROM deposit_properties
+      |""".stripMargin
+
   def save(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
     for {
@@ -82,6 +99,14 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
 
   def get(uuid: String): Try[Option[String]] = {
     database.doTransaction(implicit c => select(uuid))
+  }
+
+  def deleteProperties(optLocation: Option[String], optUuid: Option[String]): Try[Unit] = {
+    database.doTransaction(implicit c => {
+      if (optLocation.isDefined) deleteLocation(optLocation.get)
+      else if (optUuid.isDefined) deleteUUid(optUuid.get)
+           else deleteAll()
+    })
   }
 
   private def select(uuid: String)(implicit c: Connection): Try[Option[String]] = {
@@ -120,7 +145,7 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         val n = ps.executeUpdate()
         debug(s"inserted $n rows")
       }).tried.map(_ => ()).doIfFailure {
-      case NonFatal(e) => logger.error("Could perform insert", e)
+      case NonFatal(e) => logger.error("Could not perform insert", e)
     }
   }
 
@@ -140,7 +165,45 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         val n = ps.executeUpdate()
         debug(s"updated $n rows")
       }).tried.map(_ => ()).doIfFailure {
-      case NonFatal(e) => logger.error("Could perform update", e)
+      case NonFatal(e) => logger.error("Could not perform update", e)
+    }
+  }
+
+  private def deleteLocation(location: String)(implicit c: Connection): Try[Unit] = {
+    trace(location)
+
+    managed(c.prepareStatement(deleteLocationQuery))
+      .map(ps => {
+        ps.setString(1, location)
+        val n = ps.executeUpdate()
+        debug(s"deleted $n rows")
+      }).tried.map(_ => ()).doIfFailure {
+      case NonFatal(e) => logger.error(s"Could not perform delete on location $location", e)
+    }
+  }
+
+  private def deleteUUid(uuid: String)(implicit c: Connection): Try[Unit] = {
+    trace(uuid)
+
+    managed(c.prepareStatement(deleteUuidQuery))
+      .map(ps => {
+        ps.setString(1, uuid)
+        val n = ps.executeUpdate()
+        debug(s"deleted $n rows")
+      }).tried.map(_ => ()).doIfFailure {
+      case NonFatal(e) => logger.error(s"Could not perform delete on uuid $uuid", e)
+    }
+  }
+
+  private def deleteAll()(implicit c: Connection): Try[Unit] = {
+    trace(())
+
+    managed(c.prepareStatement(deleteAllQuery))
+      .map(ps => {
+        val n = ps.executeUpdate()
+        debug(s"deleted $n rows")
+      }).tried.map(_ => ()).doIfFailure {
+      case NonFatal(e) => logger.error(s"Could not perform delete on all", e)
     }
   }
 }

@@ -70,6 +70,8 @@ object Command extends App with DebugEnhancedLogging {
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
+    case (deleteProps @ commandLine.deleteProperties) :: Nil =>
+      app.deleteProperties(deleteProps.location.toOption, deleteProps.uuid.toOption)
     case (loadProps @ commandLine.`loadProperties`) :: Nil =>
       if (loadProps.uuid.isDefined) app.loadSingleDepositProperties(loadProps.uuid())
       else if (loadProps.location.isDefined) app.loadDepositDirectoriesFromLocation(loadProps.location())

@@ -47,6 +47,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     new DepositPropertiesTable(database)
   }
 
+  def deleteProperties(optLocation: Option[String], optUuid: Option[String]): Try[String] = {
+    trace(optLocation, optUuid)
+    propsTable.deleteProperties(optLocation, optUuid).map {
+      _ =>
+        "Deleted properties" +
+          optLocation.map(loc => s" for location $loc")
+            .getOrElse(optUuid.map(uuid => s" for uuid $uuid").getOrElse(""))
+    }
+  }
+
   def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText)
     propsTable.save(uuid, props, propsText, lastModified, sizeInBytes, location)
@@ -57,12 +67,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     propsTable.get(uuid)
   }
 
-  def loadDepositDirectoriesFromAllLocations(): Try[String] = Try {
+  def loadDepositDirectoriesFromAllLocations(): Try[String] = {
     trace(())
-    (configuration.sword2DepositsDir :: configuration.ingestFlowInbox :: Nil)
-      .foreach(loadDepositDirectoriesFromParent)
-    configuration.ingestFlowInboxArchived.foreach(loadDepositDirectoriesFromParent)
-    "Loaded deposits from all locations"
+    ((configuration.sword2DepositsDir :: configuration.ingestFlowInbox :: Nil)
+      .map(loadDepositDirectoriesFromParent) ++
+      configuration.ingestFlowInboxArchived.map(loadDepositDirectoriesFromParent))
+      .collectResults.map(_ => "Loaded deposits from all locations")
   }
 
   def loadDepositDirectoriesFromLocation(location: String): Try[String] = Try {
