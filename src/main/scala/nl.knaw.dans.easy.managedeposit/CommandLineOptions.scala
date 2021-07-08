@@ -133,6 +133,7 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
     descr("Loads the deposit.properties from the specified directory in the database. By default the directory is expected to contain subdirectories that are deposits. To load one deposit, use the --single option" )
     val single: ScallopOption[Boolean] = opt("single", descr = "The directory is a single deposit")
     val directory: ScallopOption[Path] = trailArg("directory", descr = "The directory from which to load the deposit properties", required = true)
+    footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(loadProperties)
 
