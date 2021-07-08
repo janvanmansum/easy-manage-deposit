@@ -19,7 +19,6 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import resource.managed
 
-import java.io.{ StringReader, StringWriter }
 import java.sql.{ Connection, Timestamp }
 import scala.collection.mutable
 import scala.util.Try
@@ -31,7 +30,7 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  uuid,
       |  last_modified,
       |  properties,
-      |  status_label,
+      |  state_label,
       |  depositor_user_id,
       |  datamanager
       |FROM deposit_properties
@@ -44,7 +43,7 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  uuid,
       |  last_modified,
       |  properties,
-      |  status_label,
+      |  state_label,
       |  depositor_user_id,
       |  datamanager)
       |VALUES (?, ?, ?, ?, ?, ?);
@@ -56,7 +55,7 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |SET
       |  last_modified = ?,
       |  properties = ?,
-      |  status_label = ?,
+      |  state_label = ?,
       |  depositor_user_id = ?,
       |  datamanager = ?
       |WHERE uuid = ?
@@ -96,17 +95,18 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   }
 
   private def insert(uuid: String, props: PropertiesConfiguration, propsText: String)(implicit c: Connection): Try[Unit] = {
-    trace(uuid, props)
+    trace(uuid, props, propsText)
 
     managed(c.prepareStatement(insertQuery))
       .map(ps => {
         ps.setString(1, uuid)
         ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()))
         ps.setString(3, propsText)
-        ps.setString(4, props.getString("status.label"))
+        ps.setString(4, props.getString("state.label"))
         ps.setString(5, props.getString("depositor.userId"))
         ps.setString(6, props.getString("curation.datamanager.userId", ""))
-        ps.executeUpdate()
+        val n = ps.executeUpdate()
+        debug(s"inserted $n rows")
       }).tried.map(_ => ())
   }
 
@@ -117,11 +117,12 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       .map(ps => {
         ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()))
         ps.setString(2, propsText)
-        ps.setString(3, props.getString("status.label"))
+        ps.setString(3, props.getString("state.label"))
         ps.setString(4, props.getString("depositor.userId"))
         ps.setString(5, props.getString("curation.datamanager.userId", ""))
         ps.setString(6, uuid)
-        ps.executeUpdate()
+        val n = ps.executeUpdate()
+        debug(s"updated $n rows")
       }).tried.map(_ => ())
   }
 }

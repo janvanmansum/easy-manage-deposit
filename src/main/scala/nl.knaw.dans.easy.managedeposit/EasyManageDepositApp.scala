@@ -60,7 +60,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     if (Files.exists(propsFile)) {
       val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
       readDepositProperties(propsString)
-        .map(p => saveDepositProperties(uuid, p, propsString))
+        .flatMap(p => saveDepositProperties(uuid, p, propsString))
         .map(_ => s"Saved deposit.properties for deposit $uuid")
         .unsafeGetOrThrow
     }
@@ -74,8 +74,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     new PropertiesConfiguration() {
       setDelimiterParsingDisabled(true)
       load(new StringReader(s))
-      checkMandatoryKey(this, "status.label")
-      checkMandatoryKey(this, "status.description")
+      checkMandatoryKey(this, "state.label")
+      checkMandatoryKey(this, "state.description")
       checkMandatoryKey(this, "depositor.userId")
     }
   }

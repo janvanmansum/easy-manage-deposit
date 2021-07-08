@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS deposit_properties (
     uuid CHAR(36) NOT NULL,
     last_modified TIMESTAMP NOT NULL,
     properties TEXT NOT NULL,
-    status_label VARCHAR(30) NOT NULL,
+    state_label VARCHAR(30) NOT NULL,
     depositor_user_id VARCHAR(50) NOT NULL,
     datamanager VARCHAR(50),
     PRIMARY KEY (uuid));

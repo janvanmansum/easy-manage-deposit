@@ -134,6 +134,7 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
     val single: ScallopOption[Boolean] = opt("single", descr = "The directory is a single deposit")
     val directory: ScallopOption[Path] = trailArg("directory", descr = "The directory from which to load the deposit properties", required = true)
   }
+  addSubcommand(loadProperties)
 
   val runService = new Subcommand("run-service") {
     descr(
