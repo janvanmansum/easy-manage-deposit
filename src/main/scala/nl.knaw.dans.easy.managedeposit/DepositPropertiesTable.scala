@@ -32,7 +32,9 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  properties,
       |  state_label,
       |  depositor_user_id,
-      |  datamanager
+      |  datamanager,
+      |  storage_size_in_bytes,
+      |  location
       |FROM deposit_properties
       |WHERE uuid = ?
       |""".stripMargin
@@ -45,8 +47,10 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  properties,
       |  state_label,
       |  depositor_user_id,
-      |  datamanager)
-      |VALUES (?, ?, ?, ?, ?, ?);
+      |  datamanager,
+      |  storage_size_in_bytes,
+      |  location)
+      |VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """.stripMargin
 
   private val updateQuery =
@@ -58,17 +62,19 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  state_label = ?,
       |  depositor_user_id = ?,
       |  datamanager = ?
+      |  storage_size_in_bytes = ?
+      |  location = ?
       |WHERE uuid = ?
         """.stripMargin
 
-  def save(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
-    trace(uuid, props, propsText)
+  def save(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String): Try[Unit] = {
+    trace(uuid, props, propsText, sizeInBytes, location)
     for {
       optPropString <- database.doTransaction(implicit c => select(uuid))
       _ = debug(s"Found result for $uuid?: ${ optPropString.isDefined }")
       _ <- optPropString
-        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText)))
-        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText)))
+        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, sizeInBytes, location)))
+        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText, sizeInBytes, location)))
     } yield ()
   }
 
@@ -94,8 +100,8 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       }).tried
   }
 
-  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String)(implicit c: Connection): Try[Unit] = {
-    trace(uuid, props, propsText)
+  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+    trace(uuid, props, propsText, sizeInBytes, location)
 
     managed(c.prepareStatement(insertQuery))
       .map(ps => {
@@ -105,13 +111,15 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         ps.setString(4, props.getString("state.label"))
         ps.setString(5, props.getString("depositor.userId"))
         ps.setString(6, props.getString("curation.datamanager.userId", ""))
+        ps.setLong(7, sizeInBytes)
+        ps.setString(8, location)
         val n = ps.executeUpdate()
         debug(s"inserted $n rows")
       }).tried.map(_ => ())
   }
 
-  private def update(uuid: String, props: PropertiesConfiguration, propsText: String)(implicit c: Connection): Try[Unit] = {
-    trace(uuid, props)
+  private def update(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+    trace(uuid, props, propsText, sizeInBytes, location)
 
     managed(c.prepareStatement(updateQuery))
       .map(ps => {
@@ -121,6 +129,8 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         ps.setString(4, props.getString("depositor.userId"))
         ps.setString(5, props.getString("curation.datamanager.userId", ""))
         ps.setString(6, uuid)
+        ps.setLong(7, sizeInBytes)
+        ps.setString(8, location)
         val n = ps.executeUpdate()
         debug(s"updated $n rows")
       }).tried.map(_ => ())

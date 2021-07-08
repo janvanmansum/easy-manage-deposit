@@ -74,7 +74,7 @@ class Database(url: URI, user: String, password: String, driver: String) extends
         connection.setAutoCommit(false)
         val savepoint = connection.setSavepoint()
 
-        debug("Calling transation function")
+        debug("Calling transaction function")
         actionFunc(connection)
           .doIfSuccess(_ => {
             connection.commit()

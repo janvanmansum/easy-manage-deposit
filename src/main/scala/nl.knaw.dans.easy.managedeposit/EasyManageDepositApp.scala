@@ -46,9 +46,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     new DepositPropertiesTable(database)
   }
 
-  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
+  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText)
-    propsTable.save(uuid, props, propsText)
+    propsTable.save(uuid, props, propsText, sizeInBytes, location)
   }
 
   def getDepositProperties(uuid: String): Try[Option[String]] = {
@@ -59,8 +59,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def loadSingleDepositProperties(uuid: String): Try[String] = {
     for {
       optDepositDir <- findDepositDir(uuid)
-      _ = optDepositDir.map(loadSingleDepositDir)
-    } yield "OK"
+      _ = debug(s"Deposit = ${optDepositDir}")
+      _ <- optDepositDir.map(loadSingleDepositDir).getOrElse(Failure(new IllegalArgumentException(s"No such deposit: $uuid")))
+    } yield s"Loaded deposit $uuid into database"
   }
 
   private def findDepositDir(uuid: String): Try[Option[Path]] = Try {
@@ -74,14 +75,24 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       val propsFile = dir.resolve("deposit.properties")
       val uuid = dir.getFileName.toString
       val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
+      val sizeInBytes = FileUtils.sizeOfDirectory(dir.toFile)
+      val location = getLocationFromPath(dir).getOrElse("UNKOWN")
       readDepositProperties(propsString)
-        .flatMap(p => saveDepositProperties(uuid, p, propsString))
+        .flatMap(p => saveDepositProperties(uuid, p, propsString, sizeInBytes, location))
         .map(_ => s"Saved deposit.properties for deposit $uuid")
         .unsafeGetOrThrow
     }
     else {
       throw new IllegalArgumentException(s"No such deposit $dir")
     }
+  }
+
+  private def getLocationFromPath(path: Path): Option[String] = {
+    val ap = path.toAbsolutePath
+    if (ap.startsWith(configuration.sword2DepositsDir.toAbsolutePath)) Some("SWORD2")
+    else if (ap.startsWith(configuration.ingestFlowInbox.toAbsolutePath)) Some("INGEST_FLOW")
+         else if (configuration.ingestFlowInboxArchived.exists(ifa => ap.startsWith(ifa.toAbsolutePath))) Some("INGEST_FLOW_ARCHIVED")
+              else None
   }
 
   def readDepositProperties(s: String): Try[PropertiesConfiguration] = Try {
@@ -94,7 +105,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       checkMandatoryKey(this, "depositor.userId")
     }
   }
-
 
   private def checkMandatoryKey(props: PropertiesConfiguration, key: String): Unit = {
     if (!props.containsKey(key)) throw new IllegalArgumentException(s"Missing mandatory key: '$key'")
