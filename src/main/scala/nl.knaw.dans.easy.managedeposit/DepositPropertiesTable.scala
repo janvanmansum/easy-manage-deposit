@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import resource.managed
 
@@ -69,14 +69,14 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |WHERE uuid = ?
         """.stripMargin
 
-  def save(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String): Try[Unit] = {
+  def save(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
     for {
       optPropString <- database.doTransaction(implicit c => select(uuid))
       _ = debug(s"Found result for $uuid?: ${ optPropString.isDefined }")
       _ <- optPropString
-        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, sizeInBytes, location)))
-        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText, sizeInBytes, location)))
+        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, lastModified, sizeInBytes, location)))
+        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText, lastModified, sizeInBytes, location)))
     } yield ()
   }
 
@@ -104,13 +104,13 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
     }
   }
 
-  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
 
     managed(c.prepareStatement(insertQuery))
       .map(ps => {
         ps.setString(1, uuid)
-        ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()))
+        ps.setTimestamp(2, new Timestamp(lastModified))
         ps.setString(3, propsText)
         ps.setString(4, props.getString("state.label"))
         ps.setString(5, props.getString("depositor.userId"))
@@ -124,13 +124,12 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
     }
   }
 
-
-  private def update(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+  private def update(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
 
     managed(c.prepareStatement(updateQuery))
       .map(ps => {
-        ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()))
+        ps.setTimestamp(1, new Timestamp(lastModified))
         ps.setString(2, propsText)
         ps.setString(3, props.getString("state.label"))
         ps.setString(4, props.getString("depositor.userId"))

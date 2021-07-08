@@ -47,9 +47,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     new DepositPropertiesTable(database)
   }
 
-  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String): Try[Unit] = {
+  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText)
-    propsTable.save(uuid, props, propsText, sizeInBytes, location)
+    propsTable.save(uuid, props, propsText, lastModified, sizeInBytes, location)
   }
 
   def getDepositProperties(uuid: String): Try[Option[String]] = {
@@ -108,10 +108,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       val propsFile = dir.resolve("deposit.properties")
       val uuid = dir.getFileName.toString
       val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
+      val lastModified = Files.getLastModifiedTime(propsFile).toMillis
       val sizeInBytes = FileUtils.sizeOfDirectory(dir.toFile)
       val location = getLocationFromPath(dir).getOrElse("UNKOWN")
       readDepositProperties(propsString)
-        .flatMap(p => saveDepositProperties(uuid, p, propsString, sizeInBytes, location))
+        .flatMap(p => saveDepositProperties(uuid, p, propsString, lastModified, sizeInBytes, location))
         .map(_ => logger.info(s"Loaded $uuid"))
         .unsafeGetOrThrow
     }
