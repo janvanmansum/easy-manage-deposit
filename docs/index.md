@@ -105,12 +105,11 @@ ARGUMENTS
                                          deposit.properties are being synced with Fedora
           ---
 
-          Subcommand: load-properties - Loads the deposit.properties from the specified directory in the database. By default the directory is expected to contain subdirectories that are deposits. To load one deposit, use the --single option
-            -s, --single   The directory is a single deposit
-            -h, --help     Show help message
+          Subcommand: load-properties - (Re-)loads the deposit properties into the database, overwriting the current records
+            -h, --help   Show help message
 
             trailing arguments:
-            directory (required)   The directory from which to load the deposit properties
+             uuid (not required)   Only load this deposit
           ---
 
           Subcommand: run-service - Starts EASY Manage Deposit as a daemon

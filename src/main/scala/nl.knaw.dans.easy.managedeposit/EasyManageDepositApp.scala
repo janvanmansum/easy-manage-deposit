@@ -33,16 +33,18 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   override val fedora: Fedora = configuration.fedora
   override val landingPageBaseUrl: URI = configuration.landingPageBaseUrl
 
-  private val database = new Database(
-    url = configuration.databaseUrl,
-    user = configuration.databaseUser,
-    password = configuration.databasePassword,
-    driver = configuration.databaseDriver)
-  logger.info("Initializing database connection...")
-  database.initConnectionPool()
-    .doIfSuccess { _ => logger.info("Database connection initialized.") }
-    .doIfFailure { case e: Throwable => throw new IllegalStateException("Cannot connect to database", e) }
-  private val propsTable = new DepositPropertiesTable(database)
+  private val propsTable = {
+    val database = new Database(
+      url = configuration.databaseUrl,
+      user = configuration.databaseUser,
+      password = configuration.databasePassword,
+      driver = configuration.databaseDriver)
+    logger.info("Initializing database connection...")
+    database.initConnectionPool()
+      .doIfSuccess { _ => logger.info("Database connection initialized.") }
+      .doIfFailure { case e: Throwable => throw new IllegalStateException("Cannot connect to database", e) }
+    new DepositPropertiesTable(database)
+  }
 
   def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String): Try[Unit] = {
     trace(uuid, props, propsText)
@@ -54,10 +56,23 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     propsTable.get(uuid)
   }
 
-  def loadSingleDepositProperties(path: Path): Try[String] = Try {
-    val propsFile = path.resolve("deposit.properties")
-    val uuid = path.getFileName.toString
-    if (Files.exists(propsFile)) {
+  def loadSingleDepositProperties(uuid: String): Try[String] = {
+    for {
+      optDepositDir <- findDepositDir(uuid)
+      _ = optDepositDir.map(loadSingleDepositDir)
+    } yield "OK"
+  }
+
+  private def findDepositDir(uuid: String): Try[Option[Path]] = Try {
+    (configuration.sword2DepositsDir #:: configuration.ingestFlowInbox #:: configuration.ingestFlowInboxArchived.toStream)
+      .map(_.resolve(uuid))
+      .collectFirst { case path if Files.exists(path) => path }
+  }
+
+  def loadSingleDepositDir(dir: Path): Try[Unit] = Try {
+    if (Files.exists(dir)) {
+      val propsFile = dir.resolve("deposit.properties")
+      val uuid = dir.getFileName.toString
       val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
       readDepositProperties(propsString)
         .flatMap(p => saveDepositProperties(uuid, p, propsString))
@@ -65,7 +80,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         .unsafeGetOrThrow
     }
     else {
-      throw new IllegalArgumentException(s"No such deposit $path")
+      throw new IllegalArgumentException(s"No such deposit $dir")
     }
   }
 
@@ -79,6 +94,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       checkMandatoryKey(this, "depositor.userId")
     }
   }
+
 
   private def checkMandatoryKey(props: PropertiesConfiguration, key: String): Unit = {
     if (!props.containsKey(key)) throw new IllegalArgumentException(s"Missing mandatory key: '$key'")
