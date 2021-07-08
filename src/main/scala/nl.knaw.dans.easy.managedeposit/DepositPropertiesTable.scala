@@ -16,12 +16,14 @@
 package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import resource.managed
 
 import java.sql.{ Connection, Timestamp }
 import scala.collection.mutable
 import scala.util.Try
+import scala.util.control.NonFatal
 
 class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   private val selectQuery =
@@ -61,8 +63,8 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
       |  properties = ?,
       |  state_label = ?,
       |  depositor_user_id = ?,
-      |  datamanager = ?
-      |  storage_size_in_bytes = ?
+      |  datamanager = ?,
+      |  storage_size_in_bytes = ?,
       |  location = ?
       |WHERE uuid = ?
         """.stripMargin
@@ -97,7 +99,9 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         }
         if (ss.size > 1) throw new IllegalStateException(s"Found ${ ss.size } deposits with the same UUID")
         ss.headOption
-      }).tried
+      }).tried.doIfFailure {
+      case NonFatal(e) => logger.error("Could perform select", e)
+    }
   }
 
   private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
@@ -115,8 +119,11 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         ps.setString(8, location)
         val n = ps.executeUpdate()
         debug(s"inserted $n rows")
-      }).tried.map(_ => ())
+      }).tried.map(_ => ()).doIfFailure {
+      case NonFatal(e) => logger.error("Could perform insert", e)
+    }
   }
+
 
   private def update(uuid: String, props: PropertiesConfiguration, propsText: String, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
@@ -128,11 +135,13 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
         ps.setString(3, props.getString("state.label"))
         ps.setString(4, props.getString("depositor.userId"))
         ps.setString(5, props.getString("curation.datamanager.userId", ""))
-        ps.setString(6, uuid)
-        ps.setLong(7, sizeInBytes)
-        ps.setString(8, location)
+        ps.setLong(6, sizeInBytes)
+        ps.setString(7, location)
+        ps.setString(8, uuid)
         val n = ps.executeUpdate()
         debug(s"updated $n rows")
-      }).tried.map(_ => ())
+      }).tried.map(_ => ()).doIfFailure {
+      case NonFatal(e) => logger.error("Could perform update", e)
+    }
   }
 }

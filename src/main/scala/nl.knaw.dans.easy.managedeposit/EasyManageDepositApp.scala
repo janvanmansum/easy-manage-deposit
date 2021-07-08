@@ -20,6 +20,7 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
+import resource.managed
 
 import java.io.StringReader
 import java.net.URI
@@ -56,10 +57,41 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     propsTable.get(uuid)
   }
 
+  def loadDepositDirectoriesFromAllLocations(): Try[String] = Try {
+    trace(())
+    (configuration.sword2DepositsDir :: configuration.ingestFlowInbox :: Nil)
+      .foreach(loadDepositDirectoriesFromParent)
+    configuration.ingestFlowInboxArchived.foreach(loadDepositDirectoriesFromParent)
+    "Loaded deposits from all locations"
+  }
+
+  def loadDepositDirectoriesFromLocation(location: String): Try[String] = Try {
+    trace(location)
+    location match {
+      case "SWORD2" => loadDepositDirectoriesFromParent(configuration.sword2DepositsDir)
+      case "INGEST_FLOW" => loadDepositDirectoriesFromParent(configuration.ingestFlowInbox)
+      case "INGEST_FLOW_ARCHIVED" => configuration.ingestFlowInboxArchived.map(loadDepositDirectoriesFromParent).getOrElse(throw new IllegalStateException("No INGEST_FLOW_ARCHIVED configured"))
+      case _ => throw new IllegalArgumentException(s"Unkown location $location")
+    }
+    s"Loaded deposits from $location"
+  }
+
+  def loadDepositDirectoriesFromParent(parent: Path): Try[Unit] = Try {
+    trace(parent)
+    managed(Files.newDirectoryStream(parent))
+      .map(_.asScala
+        .toStream
+        .withFilter(p => Files.isDirectory(p))
+        .map(loadSingleDepositDir)
+        .toList)
+      .tried.foreach(_ => logger.info(s"Loaded deposits in $parent"))
+  }
+
   def loadSingleDepositProperties(uuid: String): Try[String] = {
+    trace(uuid)
     for {
       optDepositDir <- findDepositDir(uuid)
-      _ = debug(s"Deposit = ${optDepositDir}")
+      _ = debug(s"Deposit = ${ optDepositDir }")
       _ <- optDepositDir.map(loadSingleDepositDir).getOrElse(Failure(new IllegalArgumentException(s"No such deposit: $uuid")))
     } yield s"Loaded deposit $uuid into database"
   }
@@ -71,6 +103,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def loadSingleDepositDir(dir: Path): Try[Unit] = Try {
+    trace(dir)
     if (Files.exists(dir)) {
       val propsFile = dir.resolve("deposit.properties")
       val uuid = dir.getFileName.toString
@@ -79,7 +112,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       val location = getLocationFromPath(dir).getOrElse("UNKOWN")
       readDepositProperties(propsString)
         .flatMap(p => saveDepositProperties(uuid, p, propsString, sizeInBytes, location))
-        .map(_ => s"Saved deposit.properties for deposit $uuid")
+        .map(_ => logger.info(s"Loaded $uuid"))
         .unsafeGetOrThrow
     }
     else {

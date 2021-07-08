@@ -130,8 +130,9 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
   addSubcommand(syncFedoraState)
 
   val loadProperties = new Subcommand("load-properties") {
-    descr("(Re-)loads the deposit properties into the database, overwriting the current records" )
+    descr("(Re-)loads the deposit properties into the database, overwriting the current records")
     val uuid: ScallopOption[String] = trailArg("uuid", descr = "Only load this deposit", required = false)
+    val location: ScallopOption[String] = opt("location", descr = "Only load deposits from this location (one of: SWORD2, INGEST_FLOW, INGEST_FLOW_ARCHIVED")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(loadProperties)
@@ -142,7 +143,6 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(runService)
-
 
   footer("")
   verify()

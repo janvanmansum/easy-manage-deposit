@@ -71,7 +71,9 @@ object Command extends App with DebugEnhancedLogging {
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
     case (loadProps @ commandLine.`loadProperties`) :: Nil =>
-      app.loadSingleDepositProperties(loadProps.uuid())
+      if (loadProps.uuid.isDefined) app.loadSingleDepositProperties(loadProps.uuid())
+      else if (loadProps.location.isDefined) app.loadDepositDirectoriesFromLocation(loadProps.location())
+           else app.loadDepositDirectoriesFromAllLocations()
     case commandLine.runService :: Nil => runAsService(app)
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
@@ -98,6 +100,5 @@ object Command extends App with DebugEnhancedLogging {
     Thread.currentThread.join()
     "Service terminated normally."
   }
-
 }
 
