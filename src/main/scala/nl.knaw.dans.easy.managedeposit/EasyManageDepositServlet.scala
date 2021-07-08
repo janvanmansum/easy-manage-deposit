@@ -28,23 +28,22 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
     Ok(s"EASY Manage Deposit running ($version)")
   }
 
-  put("/deposits/:uuid") {
-    val result = for {
-      _ <- checkContentType("text/plain")
-      props <- app.readDepositProperties(request.body)
-      uuid = params("uuid")
-      _ = debug(s"Found parameter uuid = $uuid")
-      // TODO: check UUID is valid UUID
-      _ <- app.saveDepositProperties(uuid, props, request.body)
-    } yield ()
-
-    result match {
-      case Success(_) => Ok()
-      case Failure(e: IllegalArgumentException) if e.getMessage.startsWith("Media type") => UnsupportedMediaType(e.getMessage)
-      case Failure(e: IllegalArgumentException) => BadRequest(e.getMessage)
-      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
-    }
-  }
+//  post("/deposits/:uuid/load") {
+//    val result = for {
+//      props <- app.loadSingleDepositProperties()
+//      uuid = params("uuid")
+//      _ = debug(s"Found parameter uuid = $uuid")
+//      // TODO: check UUID is valid UUID
+//      _ <- app.saveDepositProperties(uuid, props, request.body)
+//    } yield ()
+//
+//    result match {
+//      case Success(_) => Ok()
+//      case Failure(e: IllegalArgumentException) if e.getMessage.startsWith("Media type") => UnsupportedMediaType(e.getMessage)
+//      case Failure(e: IllegalArgumentException) => BadRequest(e.getMessage)
+//      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
+//    }
+//  }
 
   get("/deposits/:uuid") {
     contentType = "text/plain"
