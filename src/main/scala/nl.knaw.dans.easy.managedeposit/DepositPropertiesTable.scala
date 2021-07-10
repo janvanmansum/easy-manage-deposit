@@ -32,14 +32,14 @@ import scala.util.control.NonFatal
 class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: List[String]) extends DebugEnhancedLogging {
   private val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
-  def save(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
+  def save(uuid: String, props: PropertiesConfiguration, propsText: String, location: String,  lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
     for {
       optPropString <- database.doTransaction(implicit c => selectUuid(uuid))
       _ = debug(s"Found result for $uuid?: ${ optPropString.isDefined }")
       _ <- optPropString
-        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, lastModified, sizeInBytes, location)))
-        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText, lastModified, sizeInBytes, location)))
+        .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, location, lastModified, hasBag, sizeInBytes, numberOfContinuedDeposits)))
+        .getOrElse(database.doTransaction(implicit c => insert(uuid, props, propsText, location, lastModified, hasBag, sizeInBytes, numberOfContinuedDeposits)))
     } yield ()
   }
 
@@ -72,9 +72,12 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         |  state_label,
         |  depositor_user_id,
         |  datamanager,
+        |  location,
+        |  has_bag,
         |  storage_size_in_bytes,
-        |  location
+        |  number_of_continued_deposits
         |FROM deposit_properties
+        |ORDER BY last_modified
         |""".stripMargin
 
     managed(c.prepareStatement(selectUuidQuery))
@@ -97,13 +100,14 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
               state = State.toState(resultSet.getString("state_label")).getOrElse(State.UNKNOWN),
               description = props.getString("state.description", "n/a"),
               creationTimestamp = props.getString("creation.timestamp", "n/a"),
-              numberOfContinuedDeposits = -1, // TODO: add to database
+              numberOfContinuedDeposits = resultSet.getInt("number_of_continued_deposits"),
               storageSpace = resultSet.getLong("storage_size_in_bytes"),
               lastModified = new DateTime(resultSet.getTimestamp("last_modified")).withZone(DateTimeZone.UTC).toString(dateTimeFormatter),
               origin = props.getString("deposit.origin", "n/a"),
               location = resultSet.getString("location"),
               bagDirName = props.getString("bag-store.bag-name", "n/a"),
-              datamanager = resultSet.getString("datamanager")
+              datamanager = resultSet.getString("datamanager"),
+              hasBag = resultSet.getBoolean("has_bag")
             ))
         }
       }).tried.doIfFailure {
@@ -123,8 +127,10 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         |  state_label,
         |  depositor_user_id,
         |  datamanager,
+        |  location,
+        |  has_bag,
         |  storage_size_in_bytes,
-        |  location
+        |  number_of_continued_deposits
         |FROM deposit_properties
         |WHERE uuid = ?
         |""".stripMargin
@@ -147,7 +153,7 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     }
   }
 
-  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+  private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, location: String, lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
 
     val insertQuery =
@@ -159,9 +165,11 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         |  state_label,
         |  depositor_user_id,
         |  datamanager,
+        |  location,
+        |  has_bag,
         |  storage_size_in_bytes,
-        |  location)
-        |VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        |  number_of_continued_deposits)
+        |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """.stripMargin
 
     managed(c.prepareStatement(insertQuery))
@@ -172,8 +180,11 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         ps.setString(4, props.getString("state.label"))
         ps.setString(5, props.getString("depositor.userId"))
         ps.setString(6, props.getString("curation.datamanager.userId", ""))
-        ps.setLong(7, sizeInBytes)
-        ps.setString(8, location)
+        ps.setString(7, location)
+        ps.setBoolean(8, hasBag)
+        ps.setLong(9, sizeInBytes)
+        ps.setInt(10, numberOfContinuedDeposits)
+
         val n = ps.executeUpdate()
         debug(s"inserted $n rows")
       }).tried.map(_ => ()).doIfFailure {
@@ -181,7 +192,7 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     }
   }
 
-  private def update(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
+  private def update(uuid: String, props: PropertiesConfiguration, propsText: String, location: String, lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
 
     val updateQuery =
@@ -193,8 +204,10 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         |  state_label = ?,
         |  depositor_user_id = ?,
         |  datamanager = ?,
+        |  location = ?,
+        |  has_bag = ?,
         |  storage_size_in_bytes = ?,
-        |  location = ?
+        |  number_of_continued_deposits = ?
         |WHERE uuid = ?
         """.stripMargin
 
@@ -205,9 +218,11 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
         ps.setString(3, props.getString("state.label"))
         ps.setString(4, props.getString("depositor.userId"))
         ps.setString(5, props.getString("curation.datamanager.userId", ""))
-        ps.setLong(6, sizeInBytes)
-        ps.setString(7, location)
-        ps.setString(8, uuid)
+        ps.setString(6, location)
+        ps.setBoolean(7, hasBag)
+        ps.setLong(8, sizeInBytes)
+        ps.setInt(9, numberOfContinuedDeposits)
+        ps.setString(10, uuid)
         val n = ps.executeUpdate()
         debug(s"updated $n rows")
       }).tried.map(_ => ()).doIfFailure {

@@ -43,15 +43,15 @@ object ReportGenerator {
 
   def outputErrorReport(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     printRecords(deposits.filter {
-      case DepositInformation(_, _, _, _, _, INVALID, "abandoned draft, data removed", _, _, _, _, _, _, _, _) => false // see `clean-deposits.sh` (clean DRAFT section)
-      case DepositInformation(_, _, _, _, _, INVALID, _, _, _, _, _, _, _, _, _) => true
-      case DepositInformation(_, _, _, _, _, FAILED, _, _, _, _, _, _, _, _, _) => true
-      case DepositInformation(_, _, _, _, _, REJECTED, `requestChangesDescription`, _, _, _, _, "API", _, _, _) => false
-      case DepositInformation(_, _, _, _, _, REJECTED, _, _, _, _, _, _, _, _, _) => true
-      case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _, _, _, _) => true
-      case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, INVALID, "abandoned draft, data removed", _, _, _, _, _, _, _, _, _) => false // see `clean-deposits.sh` (clean DRAFT section)
+      case DepositInformation(_, _, _, _, _, INVALID, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, FAILED, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, REJECTED, `requestChangesDescription`, _, _, _, _, "API", _, _, _, _) => false
+      case DepositInformation(_, _, _, _, _, REJECTED, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _, _, _, _, _) => true
       // When the doi of an archived deposit is NOT registered, an error should be raised
-      case d @ DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _, _) if d.isDansDoi => true
+      case d @ DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _, _, _) if d.isDansDoi => true
       case _ => false
     })
   }

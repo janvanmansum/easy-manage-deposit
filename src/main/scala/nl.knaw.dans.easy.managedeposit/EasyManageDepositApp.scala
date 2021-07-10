@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import scala.math.Ordering.{ Long => LongComparator }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -30,6 +29,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
+import scala.math.Ordering.{ Long => LongComparator }
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
@@ -62,9 +62,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     }
   }
 
-  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
+  def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, location: String, lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int): Try[Unit] = {
     trace(uuid, props, propsText)
-    propsTable.save(uuid, props, propsText, lastModified, sizeInBytes, location)
+    propsTable.save(uuid, props, propsText, location, lastModified, hasBag, sizeInBytes, numberOfContinuedDeposits)
   }
 
   def getDepositProperties(uuid: String): Try[Option[String]] = {
@@ -125,10 +125,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       val lastModified = Files.getLastModifiedTime(propsFile).toMillis
       val sizeInBytes = FileUtils.sizeOfDirectory(dir.toFile)
       val location = getLocationFromPath(dir).getOrElse("UNKOWN")
+      val numberOfContinuedDeposits = dir.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$""")))
+      val hasBag = dir.list(_.exists(f => Files.isDirectory(f)))
       readDepositProperties(propsString)
         .flatMap(p => {
           val uuid = p.getString("bag-store.bag-id", "n/a")
-          saveDepositProperties(uuid, p, propsString, lastModified, sizeInBytes, location)
+          saveDepositProperties(uuid, p, propsString, location, lastModified, hasBag, sizeInBytes, numberOfContinuedDeposits)
             .doIfSuccess { _ => logger.info(s"Loaded $uuid") }
             .doIfFailure { case NonFatal(e) => logger.warn(s"Could not load $uuid", e) }
         })
@@ -147,7 +149,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         .toOption
     }
   }
-
 
   private def getLocationFromPath(path: Path): Option[String] = {
     val ap = path.toAbsolutePath
