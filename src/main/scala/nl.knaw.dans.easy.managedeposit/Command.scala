@@ -51,6 +51,17 @@ object Command extends App with DebugEnhancedLogging {
       app.createErrorReport(error.depositor.toOption, error.datamanager.toOption, error.age.toOption)
     case commandLine.reportCmd :: (raw @ commandLine.reportCmd.rawCmd) :: Nil =>
       app.createRawReport(raw.location())
+
+
+    case commandLine.reportCmdOld :: (full @ commandLine.reportCmdOld.fullCmd) :: Nil =>
+      app.createFullReport(full.depositor.toOption, full.datamanager.toOption, full.age.toOption)
+    case commandLine.reportCmdOld :: (summary @ commandLine.reportCmdOld.summaryCmd) :: Nil =>
+      app.summary(summary.depositor.toOption, summary.datamanager.toOption, summary.age.toOption)
+    case commandLine.reportCmdOld :: (error @ commandLine.reportCmdOld.errorCmd) :: Nil =>
+      app.createErrorReport(error.depositor.toOption, error.datamanager.toOption, error.age.toOption)
+    case commandLine.reportCmdOld :: (raw @ commandLine.reportCmdOld.rawCmd) :: Nil =>
+      app.createRawReport(raw.location())
+
     case (clean @ commandLine.cleanCmd) :: Nil =>
       val newState = for {
         state <- clean.newStateLabel.toOption

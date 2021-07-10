@@ -101,6 +101,54 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
   }
   addSubcommand(reportCmd)
 
+  val reportCmdOld = new Subcommand("report-old") {
+
+    val fullCmd = new Subcommand("full") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val datamanager: ScallopOption[Datamanager] = opt("datamanager", short = 'm',
+        descr = "Only report on the deposits that are assigned to this datamanager.")
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is not provided, all deposits will be reported on.")
+      descr("creates a full report for a depositor and/or datamanager")
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(fullCmd)
+
+    val summaryCmd = new Subcommand("summary") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val datamanager: ScallopOption[Datamanager] = opt("datamanager", short = 'm',
+        descr = "Only report on the deposits that are assigned to this datamanager.")
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is not provided, all deposits will be reported on.")
+      descr("creates a summary report for a depositor and/or datamanager")
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(summaryCmd)
+
+    val errorCmd = new Subcommand("error") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val datamanager: ScallopOption[Datamanager] = opt("datamanager", short = 'm',
+        descr = "Only report on the deposits that are assigned to this datamanager.")
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is not provided, all deposits will be reported on.")
+      descr("creates a report displaying all failed, rejected and invalid deposits for a depositor and/or datamanager")
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(errorCmd)
+
+    val rawCmd = new Subcommand("raw") {
+      val location: ScallopOption[Path] = trailArg[Path](name = "location")
+
+      validatePathExists(location)
+      validatePathIsDirectory(location)
+
+      descr("creates a report containing all content of deposit.properties without inferring any properties")
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(rawCmd)
+  }
+  addSubcommand(reportCmd)
+
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
     val dataOnly: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "If specified, the deposit.properties and the container file of the deposit are not deleted")
