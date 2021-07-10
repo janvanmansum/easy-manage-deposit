@@ -18,78 +18,21 @@ package nl.knaw.dans.easy.managedeposit
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.lang.BooleanUtils
 import resource.managed
 
+import java.io.StringReader
 import java.sql.{ Connection, Timestamp }
 import scala.collection.mutable
 import scala.util.Try
 import scala.util.control.NonFatal
 
-class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
-  private val selectQuery =
-    """
-      |SELECT
-      |  uuid,
-      |  last_modified,
-      |  properties,
-      |  state_label,
-      |  depositor_user_id,
-      |  datamanager,
-      |  storage_size_in_bytes,
-      |  location
-      |FROM deposit_properties
-      |WHERE uuid = ?
-      |""".stripMargin
-
-  private val insertQuery =
-    """
-      |INSERT INTO deposit_properties (
-      |  uuid,
-      |  last_modified,
-      |  properties,
-      |  state_label,
-      |  depositor_user_id,
-      |  datamanager,
-      |  storage_size_in_bytes,
-      |  location)
-      |VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-        """.stripMargin
-
-  private val updateQuery =
-    """
-      |UPDATE deposit_properties
-      |SET
-      |  last_modified = ?,
-      |  properties = ?,
-      |  state_label = ?,
-      |  depositor_user_id = ?,
-      |  datamanager = ?,
-      |  storage_size_in_bytes = ?,
-      |  location = ?
-      |WHERE uuid = ?
-        """.stripMargin
-
-  private val deleteLocationQuery =
-    """
-      |DELETE FROM deposit_properties
-      |WHERE location = ?
-      |""".stripMargin
-
-  private val deleteUuidQuery =
-    """
-      |DELETE FROM deposit_properties
-      |WHERE uuid = ?
-      |""".stripMargin
-
-  private val deleteAllQuery =
-    """
-      |DELETE FROM deposit_properties
-      |""".stripMargin
+class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: List[String]) extends DebugEnhancedLogging {
 
   def save(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
     for {
-      optPropString <- database.doTransaction(implicit c => select(uuid))
+      optPropString <- database.doTransaction(implicit c => selectUuid(uuid))
       _ = debug(s"Found result for $uuid?: ${ optPropString.isDefined }")
       _ <- optPropString
         .map(_ => database.doTransaction(implicit c => update(uuid, props, propsText, lastModified, sizeInBytes, location)))
@@ -98,7 +41,7 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   }
 
   def get(uuid: String): Try[Option[String]] = {
-    database.doTransaction(implicit c => select(uuid))
+    database.doTransaction(implicit c => selectUuid(uuid))
   }
 
   def deleteProperties(optLocation: Option[String], optUuid: Option[String]): Try[Unit] = {
@@ -109,9 +52,81 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
     })
   }
 
-  private def select(uuid: String)(implicit c: Connection): Try[Option[String]] = {
+  def processDepositInformation(processor: DepositInformation => Unit): Try[Unit] = {
+    trace(())
+    database.doTransaction(implicit c => doWithReportInformation(processor))
+  }
+
+  private def doWithReportInformation(action: DepositInformation => Unit)(implicit c: Connection): Try[Unit] = Try {
+    trace(())
+
+    val selectUuidQuery =
+      """
+        |SELECT
+        |  uuid,
+        |  last_modified,
+        |  properties,
+        |  state_label,
+        |  depositor_user_id,
+        |  datamanager,
+        |  storage_size_in_bytes,
+        |  location
+        |FROM deposit_properties
+        |""".stripMargin
+
+    managed(c.prepareStatement(selectUuidQuery))
+      .map(ps => {
+        val resultSet = ps.executeQuery()
+        while (resultSet.next()) {
+          val propsText = resultSet.getString("properties")
+          val props = new PropertiesConfiguration() {
+            setDelimiterParsingDisabled(true)
+            load(new StringReader(propsText))
+          }
+
+          action(
+            DepositInformation(
+              depositId = resultSet.getString("uuid"),
+              doiIdentifier = props.getString("identifier.doi"),
+              dansDoiRegistered = Option(BooleanUtils.toBoolean(props.getString("identifier.dans-doi.registered"))),
+              fedoraIdentifier = props.getString("identifier.fedora", "n/a"),
+              depositor = resultSet.getString("depositor_user_id"),
+              state = State.toState(resultSet.getString("state_label")).getOrElse(State.UNKNOWN),
+              description = props.getString("state.description", "n/a"),
+              creationTimestamp = props.getString("creation.timestamp"),
+              numberOfContinuedDeposits = -1, // TODO: remove from report
+              storageSpace = resultSet.getLong("storage_size_in_bytes"),
+              lastModified = resultSet.getTimestamp("last_modified").toString,
+              origin = props.getString("deposit.origin", "n/a"),
+              location = resultSet.getString("location"),
+              bagDirName = props.getString("bag-store.bag-name", "n/a"),
+              datamanager = resultSet.getString("datamanager")
+            ))
+        }
+      }).tried.doIfFailure {
+      case NonFatal(e) => logger.error("Error while processing deposit information", e)
+    }
+  }
+
+  private def selectUuid(uuid: String)(implicit c: Connection): Try[Option[String]] = {
     trace(uuid)
-    managed(c.prepareStatement(selectQuery))
+
+    val selectUuidQuery =
+      """
+        |SELECT
+        |  uuid,
+        |  last_modified,
+        |  properties,
+        |  state_label,
+        |  depositor_user_id,
+        |  datamanager,
+        |  storage_size_in_bytes,
+        |  location
+        |FROM deposit_properties
+        |WHERE uuid = ?
+        |""".stripMargin
+
+    managed(c.prepareStatement(selectUuidQuery))
       .map(ps => {
         ps.setString(1, uuid)
         ps.executeQuery()
@@ -131,6 +146,20 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
 
   private def insert(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
+
+    val insertQuery =
+      """
+        |INSERT INTO deposit_properties (
+        |  uuid,
+        |  last_modified,
+        |  properties,
+        |  state_label,
+        |  depositor_user_id,
+        |  datamanager,
+        |  storage_size_in_bytes,
+        |  location)
+        |VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """.stripMargin
 
     managed(c.prepareStatement(insertQuery))
       .map(ps => {
@@ -152,6 +181,20 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   private def update(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
 
+    val updateQuery =
+      """
+        |UPDATE deposit_properties
+        |SET
+        |  last_modified = ?,
+        |  properties = ?,
+        |  state_label = ?,
+        |  depositor_user_id = ?,
+        |  datamanager = ?,
+        |  storage_size_in_bytes = ?,
+        |  location = ?
+        |WHERE uuid = ?
+        """.stripMargin
+
     managed(c.prepareStatement(updateQuery))
       .map(ps => {
         ps.setTimestamp(1, new Timestamp(lastModified))
@@ -172,6 +215,12 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   private def deleteLocation(location: String)(implicit c: Connection): Try[Unit] = {
     trace(location)
 
+    val deleteLocationQuery =
+      """
+        |DELETE FROM deposit_properties
+        |WHERE location = ?
+        |""".stripMargin
+
     managed(c.prepareStatement(deleteLocationQuery))
       .map(ps => {
         ps.setString(1, location)
@@ -185,6 +234,12 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
   private def deleteUUid(uuid: String)(implicit c: Connection): Try[Unit] = {
     trace(uuid)
 
+    val deleteUuidQuery =
+      """
+        |DELETE FROM deposit_properties
+        |WHERE uuid = ?
+        |""".stripMargin
+
     managed(c.prepareStatement(deleteUuidQuery))
       .map(ps => {
         ps.setString(1, uuid)
@@ -197,6 +252,11 @@ class DepositPropertiesTable(database: Database) extends DebugEnhancedLogging {
 
   private def deleteAll()(implicit c: Connection): Try[Unit] = {
     trace(())
+
+    val deleteAllQuery =
+      """
+        |DELETE FROM deposit_properties
+        |""".stripMargin
 
     managed(c.prepareStatement(deleteAllQuery))
       .map(ps => {

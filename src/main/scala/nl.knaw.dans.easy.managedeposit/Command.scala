@@ -44,7 +44,7 @@ object Command extends App with DebugEnhancedLogging {
 
   val result: Try[FeedBackMessage] = commandLine.subcommands match {
     case commandLine.reportCmd :: (full @ commandLine.reportCmd.fullCmd) :: Nil =>
-      app.createFullReport(full.depositor.toOption, full.datamanager.toOption, full.age.toOption)
+      app.createFullReport2(full.depositor.toOption, full.datamanager.toOption, full.age.toOption)
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption, summary.datamanager.toOption, summary.age.toOption)
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>

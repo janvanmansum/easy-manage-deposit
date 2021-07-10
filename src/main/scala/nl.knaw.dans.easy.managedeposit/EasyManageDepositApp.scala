@@ -31,6 +31,8 @@ import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
+  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
+
   override val fedora: Fedora = configuration.fedora
   override val landingPageBaseUrl: URI = configuration.landingPageBaseUrl
 
@@ -154,8 +156,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     if (!props.containsKey(key)) throw new IllegalArgumentException(s"Missing mandatory key: '$key'")
   }
 
-  private implicit val dansDoiPrefixes: List[String] = configuration.dansDoiPrefixes
-
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnDatamanager: Option[Datamanager], filterOnAge: Option[Age], location: String): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnDatamanager, filterOnAge, location))
   }
@@ -242,6 +242,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
     ReportGenerator.outputFullReport(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits)(Console.out)
     "End of full report."
+  }
+
+  def createFullReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
+    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation).map(_ => "End of full report.").tried
   }
 
   def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
