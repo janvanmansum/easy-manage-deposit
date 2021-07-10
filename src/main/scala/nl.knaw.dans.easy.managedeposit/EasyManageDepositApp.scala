@@ -267,7 +267,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def createFullReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
-    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation).map(_ => "End of full report.").tried
+    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation()).map(_ => "End of full report.").tried
   }
 
   def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
@@ -277,6 +277,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     ReportGenerator.outputErrorReport(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits)(Console.out)
     "End of error report."
   }
+
+  def createErrorReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
+    import State._
+    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation(List(INVALID, REJECTED, FAILED, UNKNOWN))).map(_ => "End of error report.").tried
+  }
+
 
   def createRawReport(location: Path): Try[String] = Try {
     ReportGenerator.outputRawReport(collectRawDepositProperties(location))(Console.out)

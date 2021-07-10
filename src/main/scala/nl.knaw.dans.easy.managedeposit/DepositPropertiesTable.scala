@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import nl.knaw.dans.easy.managedeposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -32,7 +33,7 @@ import scala.util.control.NonFatal
 class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: List[String]) extends DebugEnhancedLogging {
   private val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
-  def save(uuid: String, props: PropertiesConfiguration, propsText: String, location: String,  lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int): Try[Unit] = {
+  def save(uuid: String, props: PropertiesConfiguration, propsText: String, location: String, lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
     for {
       optPropString <- database.doTransaction(implicit c => selectUuid(uuid))
@@ -55,32 +56,42 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     })
   }
 
-  def processDepositInformation(processor: DepositInformation => Unit): Try[Unit] = {
+  def processDepositInformation(filterStates: List[State] = List.empty)(processor: DepositInformation => Unit): Try[Unit] = {
     trace(())
-    database.doTransaction(implicit c => doWithReportInformation(processor))
+    database.doTransaction(implicit c => doWithReportInformation(filterStates)(processor))
   }
 
-  private def doWithReportInformation(action: DepositInformation => Unit)(implicit c: Connection): Try[Unit] = Try {
+  private def doWithReportInformation(filterStates: List[State] = List.empty,
+                                      filterDepositor: Option[String] = None,
+                                      filterDatamanager: Option[String] = None,
+                                      filterAgeInDays: Option[Int] = None)
+                                     (action: DepositInformation => Unit)(implicit c: Connection): Try[Unit] = Try {
     trace(())
 
-    val selectUuidQuery =
-      """
-        |SELECT
-        |  uuid,
-        |  last_modified,
-        |  properties,
-        |  state_label,
-        |  depositor_user_id,
-        |  datamanager,
-        |  location,
-        |  has_bag,
-        |  storage_size_in_bytes,
-        |  number_of_continued_deposits
-        |FROM deposit_properties
-        |ORDER BY last_modified
-        |""".stripMargin
+    val query =
+      s"""
+         |SELECT
+         |  uuid,
+         |  last_modified,
+         |  properties,
+         |  state_label,
+         |  depositor_user_id,
+         |  datamanager,
+         |  location,
+         |  has_bag,
+         |  storage_size_in_bytes,
+         |  number_of_continued_deposits
+         |FROM deposit_properties
+         |${
+        if (filterStates.isEmpty) ""
+        else "WHERE state_label in (" + filterStates.map(s => s"'$s'").mkString(",") + ")"
+      }
+         |ORDER BY last_modified
+         |""".stripMargin
 
-    managed(c.prepareStatement(selectUuidQuery))
+    debug(s"query = $query")
+
+    managed(c.prepareStatement(query))
       .map(ps => {
         val resultSet = ps.executeQuery()
         while (resultSet.next()) {

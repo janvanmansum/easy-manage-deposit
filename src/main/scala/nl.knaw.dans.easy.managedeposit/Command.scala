@@ -48,10 +48,7 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption, summary.datamanager.toOption, summary.age.toOption)
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
-      app.createErrorReport(error.depositor.toOption, error.datamanager.toOption, error.age.toOption)
-    case commandLine.reportCmd :: (raw @ commandLine.reportCmd.rawCmd) :: Nil =>
-      app.createRawReport(raw.location())
-
+      app.createErrorReport2(error.depositor.toOption, error.datamanager.toOption, error.age.toOption)
 
     case commandLine.reportCmdOld :: (full @ commandLine.reportCmdOld.fullCmd) :: Nil =>
       app.createFullReport(full.depositor.toOption, full.datamanager.toOption, full.age.toOption)
