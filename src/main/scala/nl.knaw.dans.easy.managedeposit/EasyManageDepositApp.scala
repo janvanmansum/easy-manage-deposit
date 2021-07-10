@@ -15,11 +15,13 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import scala.math.Ordering.{ Long => LongComparator }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
+import org.joda.time.{ DateTime, DateTimeZone }
 import resource.managed
 
 import java.io.StringReader
@@ -136,6 +138,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       throw new IllegalArgumentException(s"No such deposit $dir")
     }
   }
+
+  private def getLastModifiedStamp(path: Path): Option[DateTime] = {
+    managed(Files.list(path)).acquireAndGet {
+      _.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+        .max(LongComparator)
+        .map[DateTime](new DateTime(_, DateTimeZone.UTC))
+        .toOption
+    }
+  }
+
 
   private def getLocationFromPath(path: Path): Option[String] = {
     val ap = path.toAbsolutePath

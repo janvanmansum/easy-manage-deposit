@@ -19,6 +19,8 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.lang.BooleanUtils
+import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
+import org.joda.time.{ DateTime, DateTimeZone }
 import resource.managed
 
 import java.io.StringReader
@@ -28,6 +30,7 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: List[String]) extends DebugEnhancedLogging {
+  private val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   def save(uuid: String, props: PropertiesConfiguration, propsText: String, lastModified: Long, sizeInBytes: Long, location: String): Try[Unit] = {
     trace(uuid, props, propsText, sizeInBytes, location)
@@ -94,9 +97,9 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
               state = State.toState(resultSet.getString("state_label")).getOrElse(State.UNKNOWN),
               description = props.getString("state.description", "n/a"),
               creationTimestamp = props.getString("creation.timestamp", "n/a"),
-              numberOfContinuedDeposits = -1, // TODO: remove from report
+              numberOfContinuedDeposits = -1, // TODO: add to database
               storageSpace = resultSet.getLong("storage_size_in_bytes"),
-              lastModified = resultSet.getTimestamp("last_modified").toString,
+              lastModified = new DateTime(resultSet.getTimestamp("last_modified")).withZone(DateTimeZone.UTC).toString(dateTimeFormatter),
               origin = props.getString("deposit.origin", "n/a"),
               location = resultSet.getString("location"),
               bagDirName = props.getString("bag-store.bag-name", "n/a"),
