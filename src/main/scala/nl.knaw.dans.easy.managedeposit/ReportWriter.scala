@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.managedeposit
 
 import org.apache.commons.csv.CSVFormat
+import org.apache.commons.lang.StringUtils
 
 import java.io.PrintStream
 
@@ -41,7 +42,7 @@ class ReportWriter(printStream: PrintStream) extends Function[DepositInformation
       di.datamanager,
       di.creationTimestamp,
       di.lastModified,
-      di.description,
+      StringUtils.abbreviate(di.description, 1000),
       di.numberOfContinuedDeposits.toString,
       di.storageSpace.toString)
   }
