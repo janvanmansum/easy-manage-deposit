@@ -147,7 +147,7 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
     }
     addSubcommand(rawCmd)
   }
-  addSubcommand(reportCmd)
+  addSubcommand(reportCmdOld)
 
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
