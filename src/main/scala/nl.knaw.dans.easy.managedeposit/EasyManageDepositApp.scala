@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
+import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
@@ -118,14 +119,17 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     trace(dir)
     if (Files.exists(dir)) {
       val propsFile = dir.resolve("deposit.properties")
-      val uuid = dir.getFileName.toString
       val propsString = FileUtils.readFileToString(propsFile.toFile, StandardCharsets.UTF_8)
       val lastModified = Files.getLastModifiedTime(propsFile).toMillis
       val sizeInBytes = FileUtils.sizeOfDirectory(dir.toFile)
       val location = getLocationFromPath(dir).getOrElse("UNKOWN")
       readDepositProperties(propsString)
-        .flatMap(p => saveDepositProperties(uuid, p, propsString, lastModified, sizeInBytes, location))
-        .map(_ => logger.info(s"Loaded $uuid"))
+        .flatMap(p => {
+          val uuid = p.getString("bag-store.bag-id", "n/a")
+          saveDepositProperties(uuid, p, propsString, lastModified, sizeInBytes, location)
+            .doIfSuccess { _ => logger.info(s"Loaded $uuid") }
+            .doIfFailure { case NonFatal(e) => logger.warn(s"Could not load $uuid", e) }
+        })
         .unsafeGetOrThrow
     }
     else {
@@ -169,14 +173,19 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnDatamanager: Option[Datamanager], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
-    trace(filterOnDepositor)
+    trace(filterOnDepositor, filterOnDatamanager, filterOnAge, depositPaths)
     getDepositManagers(depositPaths)
       .withFilter(_.isValidDeposit)
       .withFilter(_.hasDepositor(filterOnDepositor))
       .withFilter(_.hasDatamanager(filterOnDatamanager))
       .withFilter(_.isOlderThan(filterOnAge))
       .map(_.getDepositInformation(location))
-      .collect { case Success(d: DepositInformation) => d }
+      .map {
+        r => logger.debug(s"result = ${ r }"); r
+      }
+      .collect {
+        case Success(d: DepositInformation) => d
+      }
   }
 
   private def collectRawDepositProperties(depositPaths: List[Path]): Seq[Seq[String]] = {

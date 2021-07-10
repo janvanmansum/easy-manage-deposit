@@ -87,13 +87,13 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
           action(
             DepositInformation(
               depositId = resultSet.getString("uuid"),
-              doiIdentifier = props.getString("identifier.doi"),
+              doiIdentifier = props.getString("identifier.doi", "n/a"),
               dansDoiRegistered = Option(BooleanUtils.toBoolean(props.getString("identifier.dans-doi.registered"))),
               fedoraIdentifier = props.getString("identifier.fedora", "n/a"),
               depositor = resultSet.getString("depositor_user_id"),
               state = State.toState(resultSet.getString("state_label")).getOrElse(State.UNKNOWN),
               description = props.getString("state.description", "n/a"),
-              creationTimestamp = props.getString("creation.timestamp"),
+              creationTimestamp = props.getString("creation.timestamp", "n/a"),
               numberOfContinuedDeposits = -1, // TODO: remove from report
               storageSpace = resultSet.getLong("storage_size_in_bytes"),
               lastModified = resultSet.getTimestamp("last_modified").toString,
