@@ -79,7 +79,10 @@ object Command extends App with DebugEnhancedLogging {
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
     case (deleteProps @ commandLine.deleteProperties) :: Nil =>
-      app.deleteProperties(deleteProps.location.toOption, deleteProps.uuid.toOption)
+      if (deleteProps.location.isDefined) app.deletePropertiesFromLocation(deleteProps.location())
+      else if (deleteProps.uuid.isDefined) app.deleteProperties(deleteProps.uuid())
+           else if (deleteProps.all()) app.deleteAllProperties()
+                else Failure(new IllegalArgumentException("Not specified what to delete"))
     case (loadProps @ commandLine.`loadProperties`) :: Nil =>
       if (loadProps.uuid.isDefined) app.loadSingleDepositProperties(loadProps.uuid())
       else if (loadProps.location.isDefined) app.loadDepositDirectoriesFromLocation(loadProps.location())

@@ -49,12 +49,16 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     database.doTransaction(implicit c => selectUuid(uuid))
   }
 
-  def deleteProperties(optLocation: Option[String], optUuid: Option[String]): Try[Unit] = {
-    database.doTransaction(implicit c => {
-      if (optLocation.isDefined) deleteLocation(optLocation.get)
-      else if (optUuid.isDefined) deleteUUid(optUuid.get)
-           else deleteAll()
-    })
+  def deleteAllProperties(): Try[Unit] = {
+    database.doTransaction(implicit c => deleteAll())
+  }
+
+  def deletePropertiesFromLocation(location: String): Try[Unit] = {
+    database.doTransaction(implicit c => deleteLocation(location))
+  }
+
+  def deleteProperties(uuid: String): Try[Unit] = {
+    database.doTransaction(implicit c => deleteUUid(uuid))
   }
 
   def processDepositInformation(filterStates: List[State] = List.empty,

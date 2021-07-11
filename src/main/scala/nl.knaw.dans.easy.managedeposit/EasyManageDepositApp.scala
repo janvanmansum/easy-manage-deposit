@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
-import nl.knaw.dans.easy.managedeposit.ReportGenerator.{ GB, KB, MB, TB }
 import nl.knaw.dans.easy.managedeposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -56,14 +55,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     new DepositPropertiesTable(database)
   }
 
-  def deleteProperties(optLocation: Option[String], optUuid: Option[String]): Try[String] = {
-    trace(optLocation, optUuid)
-    propsTable.deleteProperties(optLocation, optUuid).map {
-      _ =>
-        "Deleted properties" +
-          optLocation.map(loc => s" for location $loc")
-            .getOrElse(optUuid.map(uuid => s" for uuid $uuid").getOrElse(""))
-    }
+  def deletePropertiesFromLocation(location: String): Try[String] = {
+    propsTable.deletePropertiesFromLocation(location).map(_ => s"Deleted properties from location $location")
+  }
+
+  def deleteAllProperties(): Try[String] = {
+    propsTable.deleteAllProperties().map(_ => "Deleted all propertiess")
+  }
+
+  def deleteProperties(uuid: String): Try[String] = {
+    propsTable.deleteProperties(uuid).map(_ => s"Deleted properties for deposit $uuid")
   }
 
   def saveDepositProperties(uuid: String, props: PropertiesConfiguration, propsText: String, location: String, lastModified: Long, hasBag: Boolean, sizeInBytes: Long, numberOfContinuedDeposits: Int): Try[Unit] = {
@@ -371,11 +372,26 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     for {
       sword2DeletedDeposits <- deleteDepositsFromDepositsDir(configuration.sword2DepositsDir, deleteParams, "SWORD2")
       ingestFlowDeletedDeposits <- deleteDepositsFromDepositsDir(configuration.ingestFlowInbox, deleteParams, "INGEST_FLOW")
+      _ <- if (deleteParams.doUpdate) {
+        if (deleteParams.onlyData) updatePropertiesInTable(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)
+        else deletePropertiesFromTable(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)
+      }
+           else Success(())
     } yield {
       if (deleteParams.output || !deleteParams.doUpdate)
         ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
       "Execution of clean: success "
     }
+  }
+
+  private def deletePropertiesFromTable(deposits: Seq[DepositInformation]): Try[Unit] = {
+    trace(())
+    deposits.map(di => propsTable.deleteProperties(di.depositId)).collectResults.map(_ => ())
+  }
+
+  private def updatePropertiesInTable(deposits: Seq[DepositInformation]): Try[Unit] = {
+    trace(())
+    deposits.map(_.depositId).map(loadSingleDepositProperties).collectResults.map(_ => ())
   }
 
   def syncFedoraState(easyDatasetId: DatasetId): Try[FeedBackMessage] = {

@@ -181,6 +181,8 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
     descr("Deletes selected properties from the databse")
     val uuid: ScallopOption[String] = trailArg("uuid", descr = "Only load this deposit", required = false)
     val location: ScallopOption[String] = opt("location", descr = "Only delete deposits from this location (one of: SWORD2, INGEST_FLOW, INGEST_FLOW_ARCHIVED")
+    val all: ScallopOption[Boolean] = opt("all", descr = "Delete all properties")
+    mutuallyExclusive(uuid, location, all)
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(deleteProperties)
