@@ -267,7 +267,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def createFullReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
-    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation()).map(_ => "End of full report.").tried
+    managed(new ReportWriter()(Console.out)).map(propsTable.processDepositInformation(
+      filterStates = List.empty,
+      depositor,
+      datamanager,
+      age)).map(_ => "End of full report.").tried
   }
 
   def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
@@ -280,9 +284,25 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   def createErrorReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
     import State._
-    managed(new ReportWriter(Console.out)).map(propsTable.processDepositInformation(List(INVALID, REJECTED, FAILED, UNKNOWN))).map(_ => "End of error report.").tried
-  }
+    val errorFilter = (di: DepositInformation) => di match {
+      case DepositInformation(_, _, _, _, _, INVALID, "abandoned draft, data removed", _, _, _, _, _, _, _, _, _) => false // see `clean-deposits.sh` (clean DRAFT section)
+      case DepositInformation(_, _, _, _, _, INVALID, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, FAILED, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, REJECTED, Curation.`requestChangesDescription`, _, _, _, _, "API", _, _, _, _) => false
+      case DepositInformation(_, _, _, _, _, REJECTED, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _, _, _, _, _) => true
+      // When the doi of an archived deposit is NOT registered, an error should be raised
+      case d @ DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _, _, _) if d.isDansDoi => true
+      case _ => false
+    }
 
+    managed(new ReportWriter(errorFilter)(Console.out)).map(propsTable.processDepositInformation(
+      filterStates = List.empty, // for now no filtering on states is possible; all states can potentially indicate an error, see filter function
+      depositor,
+      datamanager,
+      age)).map(_ => "End of error report.").tried
+  }
 
   def createRawReport(location: Path): Try[String] = Try {
     ReportGenerator.outputRawReport(collectRawDepositProperties(location))(Console.out)

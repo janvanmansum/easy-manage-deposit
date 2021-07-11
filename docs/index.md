@@ -9,11 +9,12 @@ SYNOPSIS
     easy-manage-deposit report full [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
     easy-manage-deposit report summary [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
     easy-manage-deposit report error [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
-    easy-manage-deposit report raw [<location>]
     easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>]  \
             [-l, --new-state-label <state>] [-n, --new-state-description <description>] \
             [-f, --force] [-o, --output] [--do-update] [<depositor>]
     easy-manage-deposit sync-fedora-state <easy-dataset-id>
+    easy-manage-deposit load-properties [l, --location {SWORD2|INGEST_FLOW|INGEST_FLOW_ARCHIVED}] <uuid>
+    easy-manage-deposit delete-properties
     easy-manage-deposit run-service
 
 ARGUMENTS

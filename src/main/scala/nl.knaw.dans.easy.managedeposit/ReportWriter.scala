@@ -15,12 +15,13 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.lang.StringUtils
 
 import java.io.PrintStream
 
-class ReportWriter(printStream: PrintStream) extends Function[DepositInformation, Unit] with AutoCloseable {
+class ReportWriter(filter: DepositInformation => Boolean = _ => true)(printStream: PrintStream) extends Function[DepositInformation, Unit] with DebugEnhancedLogging with  AutoCloseable {
   private val csvFormat: CSVFormat = CSVFormat.RFC4180
     .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DATAMANAGER", "DEPOSIT_CREATION_TIMESTAMP",
       "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
@@ -29,22 +30,26 @@ class ReportWriter(printStream: PrintStream) extends Function[DepositInformation
   private val printer = csvFormat.print(printStream)
 
   override def apply(di: DepositInformation): Unit = {
-    printer.printRecord(
-      di.depositor,
-      di.depositId,
-      di.bagDirName,
-      di.state,
-      di.origin,
-      di.location,
-      di.doiIdentifier,
-      di.registeredString,
-      di.fedoraIdentifier,
-      di.datamanager,
-      di.creationTimestamp,
-      di.lastModified,
-      StringUtils.abbreviate(di.description, 1000),
-      di.numberOfContinuedDeposits.toString,
-      di.storageSpace.toString)
+    if (filter(di)) {
+      printer.printRecord(
+        di.depositor,
+        di.depositId,
+        di.bagDirName,
+        di.state,
+        di.origin,
+        di.location,
+        di.doiIdentifier,
+        di.registeredString,
+        di.fedoraIdentifier,
+        di.datamanager,
+        di.creationTimestamp,
+        di.lastModified,
+        StringUtils.abbreviate(di.description, 1000),
+        di.numberOfContinuedDeposits.toString,
+        di.storageSpace.toString)
+    } else {
+      debug(s"Filter function returned false for ${di.depositId}, skipping ...")
+    }
   }
 
   override def close(): Unit = {

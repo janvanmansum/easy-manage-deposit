@@ -27,6 +27,7 @@ import resource.managed
 import java.io.StringReader
 import java.sql.{ Connection, Timestamp }
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -56,9 +57,12 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     })
   }
 
-  def processDepositInformation(filterStates: List[State] = List.empty)(processor: DepositInformation => Unit): Try[Unit] = {
+  def processDepositInformation(filterStates: List[State] = List.empty,
+                                filterDepositor: Option[String] = None,
+                                filterDatamanager: Option[String] = None,
+                                filterAgeInDays: Option[Int] = None)(processor: DepositInformation => Unit): Try[Unit] = {
     trace(())
-    database.doTransaction(implicit c => doWithReportInformation(filterStates)(processor))
+    database.doTransaction(implicit c => doWithReportInformation(filterStates, filterDepositor, filterDatamanager, filterAgeInDays)(processor))
   }
 
   private def doWithReportInformation(filterStates: List[State] = List.empty,
@@ -67,6 +71,12 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
                                       filterAgeInDays: Option[Int] = None)
                                      (action: DepositInformation => Unit)(implicit c: Connection): Try[Unit] = Try {
     trace(())
+    val whereConditions = new ListBuffer[String]()
+    if (filterStates.nonEmpty) whereConditions.append("state_label in (" + filterStates.map(s => s"'$s'").mkString(",") + ")")
+    if (filterDepositor.nonEmpty) whereConditions.append(s"depositor_user_id = '${filterDepositor.get}'")
+    if (filterDatamanager.nonEmpty) whereConditions.append(s"datamanager = '${filterDatamanager.get}'")
+    if (filterAgeInDays.nonEmpty) whereConditions.append(s"last_modified > NOW() - INTERVAL '${filterAgeInDays.get} days'")
+
 
     val query =
       s"""
@@ -83,9 +93,8 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
          |  number_of_continued_deposits
          |FROM deposit_properties
          |${
-        if (filterStates.isEmpty) ""
-        else "WHERE state_label in (" + filterStates.map(s => s"'$s'").mkString(",") + ")"
-      }
+        if (whereConditions.isEmpty) ""
+        else "WHERE " + whereConditions.mkString(" AND\n")}
          |ORDER BY last_modified
          |""".stripMargin
 
