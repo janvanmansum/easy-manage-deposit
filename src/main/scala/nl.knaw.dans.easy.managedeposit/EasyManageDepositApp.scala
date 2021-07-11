@@ -16,6 +16,8 @@
 package nl.knaw.dans.easy.managedeposit
 
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
+import nl.knaw.dans.easy.managedeposit.ReportGenerator.{ GB, KB, MB, TB }
+import nl.knaw.dans.easy.managedeposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -23,10 +25,12 @@ import org.apache.commons.io.FileUtils
 import org.joda.time.{ DateTime, DateTimeZone }
 import resource.managed
 
-import java.io.StringReader
+import java.io.{ PrintStream, StringReader }
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.math.Ordering.{ Long => LongComparator }
@@ -256,6 +260,60 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
     ReportGenerator.outputSummary(sword2Deposits ++ ingestFlowDeposits ++ ingestFlowArchivedDeposits, depositor)(Console.out)
     "End of summary report."
+  }
+
+  def summary2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
+    outputSummary()(Console.out)
+    "End of summary report."
+  }
+
+  def outputSummary(depositor: Option[DepositorId] = None)(implicit printStream: PrintStream): Try[Unit] = {
+    propsTable.getDepositSizeAndSpaceGroupedByState.map {
+      depositsGroupedByState =>
+
+        val now = Calendar.getInstance().getTime
+        val format = new SimpleDateFormat("yyyy-MM-dd")
+        val currentTime = format.format(now)
+        lazy val stateLength = depositsGroupedByState.map { case (state, _, _) => state.toString.length }.max
+        val numberOfDeposits = depositsGroupedByState.map(_._2).sum
+        val totalSpace = depositsGroupedByState.map(_._3).sum
+
+        printStream.println("Grand totals:")
+        printStream.println("-------------")
+        printStream.println(s"Timestamp          : $currentTime")
+        printStream.println(f"Number of deposits : ${ numberOfDeposits }%10d")
+        printStream.println(s"Total space        : ${ formatStorageSize(totalSpace) }")
+        printStream.println()
+        printStream.println("Per state:")
+        printStream.println("----------")
+        depositsGroupedByState.foreach { case (state, size, space) => printLineForDepositGroup(state, size, space, stateLength) }
+        printStream.println()
+    }
+  }
+
+  private def printLineForDepositGroup(state: State, size: Long, space: Long, maxStateLength: Int)(implicit printStream: PrintStream): Unit = {
+    printStream.println(formatCountAndSize(size, space, state, maxStateLength))
+  }
+
+  private def formatCountAndSize(size: Long, space: Long, filterOnState: State, maxStateLength: Int): String = {
+    s"%-${ maxStateLength }s : %5d (%s)".format(filterOnState, size, formatStorageSize(space))
+  }
+
+  private def formatStorageSize(nBytes: Long): String = {
+    val KB = 1024L
+    val MB = 1024L * KB
+    val GB = 1024L * MB
+    val TB = 1024L * GB
+
+    def formatSize(unitSize: Long, unit: String): String = {
+      f"${ nBytes / unitSize.toFloat }%8.1f $unit"
+    }
+
+    if (nBytes > 1.1 * TB) formatSize(TB, "T")
+    else if (nBytes > 1.1 * GB) formatSize(GB, "G")
+         else if (nBytes > 1.1 * MB) formatSize(MB, "M")
+              else if (nBytes > 1.1 * KB) formatSize(KB, "K")
+                   else formatSize(1, "B")
   }
 
   def createFullReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {

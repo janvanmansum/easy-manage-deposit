@@ -135,6 +135,45 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     }
   }
 
+  def getDepositSizeAndSpaceGroupedByState: Try[Seq[(State, Long, Long)]] =  {
+    database.doTransaction(implicit c => selectStateSizeAndSpace())
+  }
+
+
+  private def selectStateSizeAndSpace()(implicit c: Connection): Try[Seq[(State, Long, Long)]] = {
+    trace(())
+
+    val query =
+      """
+        |SELECT
+        |  state_label,
+        |  count(*),
+        |  sum(storage_size_in_bytes)
+        |FROM deposit_properties
+        |GROUP BY state_label
+        |ORDER BY state_label
+        |""".stripMargin
+
+    managed(c.prepareStatement(query))
+      .map(ps => {
+        ps.executeQuery()
+      }).map(
+      r => {
+        val stats = new mutable.ListBuffer[(State, Long, Long)]()
+
+        while (r.next()) {
+          stats.append((
+            State.toState(r.getString("state_label")).getOrElse(State.UNKNOWN),
+            r.getLong("count"),
+            r.getLong("sum")))
+        }
+        stats
+      }).tried.doIfFailure {
+      case NonFatal(e) => logger.error("Could perform select", e)
+    }
+  }
+
+
   private def selectUuid(uuid: String)(implicit c: Connection): Try[Option[String]] = {
     trace(uuid)
 
