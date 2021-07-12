@@ -68,7 +68,5 @@ paths:
       responses:
         200:
           description: OK. The `deposit.properties` were written to the dabase.
-        201:
-          description: Created. The `deposit.properties` were written to the dabase.
         404:
           description: Not Found. The uuid referred to a deposit not found in the deposit area

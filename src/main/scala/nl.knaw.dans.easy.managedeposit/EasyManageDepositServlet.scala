@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.managedeposit
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
+import java.lang.IllegalArgumentException
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
@@ -32,7 +33,11 @@ class EasyManageDepositServlet(app: EasyManageDepositApp,
     val uuid = params("uuid")
     app.loadSingleDepositProperties(uuid) match {
       case Success(_) => Ok()
-      case Failure(NonFatal(e)) => InternalServerError(e.getMessage)
+      case Failure(e: IllegalArgumentException) if e.getMessage.startsWith("No such deposit") => NotFound(s"Could not find deposit $uuid in deposit area")
+      case Failure(NonFatal(e)) => {
+        logger.error("Error loading deposit properties", e)
+        InternalServerError(e.getMessage)
+      }
     }
   }
 
