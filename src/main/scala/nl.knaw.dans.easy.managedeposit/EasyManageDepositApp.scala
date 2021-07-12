@@ -255,7 +255,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     } yield depositInformation
   }
 
-  def summary(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
+  def summaryOld(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
     val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
     val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
@@ -263,7 +263,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of summary report."
   }
 
-  def summary2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
+  def summary(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
     outputSummary(depositor, datamanager, age)(Console.out)
     "End of summary report."
   }
@@ -318,7 +318,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
                    else formatSize(1, "B")
   }
 
-  def createFullReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
+  def createFullReportOld(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
     val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
     val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
@@ -326,7 +326,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of full report."
   }
 
-  def createFullReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
+  def createFullReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
     managed(new ReportWriter()(Console.out)).map(propsTable.processDepositInformation(
       filterStates = List.empty,
       depositor,
@@ -334,7 +334,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       age)).map(_ => "End of full report.").tried
   }
 
-  def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
+  def createErrorReportOld(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(configuration.sword2DepositsDir, depositor, datamanager, age, "SWORD2")
     val ingestFlowDeposits = collectDataFromDepositsDir(configuration.ingestFlowInbox, depositor, datamanager, age, "INGEST_FLOW")
     val ingestFlowArchivedDeposits = configuration.ingestFlowInboxArchived.map(collectDataFromDepositsDir(_, depositor, datamanager, age, "INGEST_FLOW_ARCHIVED")).getOrElse(Seq.empty)
@@ -342,7 +342,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def createErrorReport2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
+  def createErrorReport(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = {
     import State._
     val errorFilter = (di: DepositInformation) => di match {
       case DepositInformation(_, _, _, _, _, INVALID, "abandoned draft, data removed", _, _, _, _, _, _, _, _, _) => false // see `clean-deposits.sh` (clean DRAFT section)
