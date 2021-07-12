@@ -264,12 +264,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def summary2(depositor: Option[DepositorId], datamanager: Option[Datamanager], age: Option[Age]): Try[String] = Try {
-    outputSummary()(Console.out)
+    outputSummary(depositor, datamanager, age)(Console.out)
     "End of summary report."
   }
 
-  def outputSummary(depositor: Option[DepositorId] = None)(implicit printStream: PrintStream): Try[Unit] = {
-    propsTable.getDepositSizeAndSpaceGroupedByState.map {
+  def outputSummary(depositor: Option[DepositorId] = None, datamanager: Option[Datamanager] = None, age: Option[Age] = None)(implicit printStream: PrintStream): Try[Unit] = {
+    trace(depositor, datamanager, age)
+    propsTable.getDepositSizeAndSpaceGroupedByState(depositor, datamanager, age).map {
       depositsGroupedByState =>
 
         val now = Calendar.getInstance().getTime

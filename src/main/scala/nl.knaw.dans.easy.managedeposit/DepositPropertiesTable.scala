@@ -77,10 +77,9 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     trace(())
     val whereConditions = new ListBuffer[String]()
     if (filterStates.nonEmpty) whereConditions.append("state_label in (" + filterStates.map(s => s"'$s'").mkString(",") + ")")
-    if (filterDepositor.nonEmpty) whereConditions.append(s"depositor_user_id = '${filterDepositor.get}'")
-    if (filterDatamanager.nonEmpty) whereConditions.append(s"datamanager = '${filterDatamanager.get}'")
-    if (filterAgeInDays.nonEmpty) whereConditions.append(s"last_modified > NOW() - INTERVAL '${filterAgeInDays.get} days'")
-
+    if (filterDepositor.nonEmpty) whereConditions.append(s"depositor_user_id = '${ filterDepositor.get }'")
+    if (filterDatamanager.nonEmpty) whereConditions.append(s"datamanager = '${ filterDatamanager.get }'")
+    if (filterAgeInDays.nonEmpty) whereConditions.append(s"last_modified > NOW() - INTERVAL '${ filterAgeInDays.get } days'")
 
     val query =
       s"""
@@ -98,7 +97,8 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
          |FROM deposit_properties
          |${
         if (whereConditions.isEmpty) ""
-        else "WHERE " + whereConditions.mkString(" AND\n")}
+        else "WHERE " + whereConditions.mkString(" AND\n")
+      }
          |ORDER BY last_modified
          |""".stripMargin
 
@@ -139,24 +139,31 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
     }
   }
 
-  def getDepositSizeAndSpaceGroupedByState: Try[Seq[(State, Long, Long)]] =  {
-    database.doTransaction(implicit c => selectStateSizeAndSpace())
+  def getDepositSizeAndSpaceGroupedByState(depositor: Option[DepositorId], datamanager: Option[Datamanager], ageInDays: Option[Age]): Try[Seq[(State, Long, Long)]] = {
+    database.doTransaction(implicit c => selectStateSizeAndSpace(depositor, datamanager, ageInDays))
   }
 
-
-  private def selectStateSizeAndSpace()(implicit c: Connection): Try[Seq[(State, Long, Long)]] = {
+  private def selectStateSizeAndSpace(depositor: Option[DepositorId], datamanager: Option[Datamanager], ageInDays: Option[Age])(implicit c: Connection): Try[Seq[(State, Long, Long)]] = {
     trace(())
+    val whereConditions = new ListBuffer[String]()
+    if (depositor.nonEmpty) whereConditions.append(s"depositor_user_id = '${ depositor.get }'")
+    if (datamanager.nonEmpty) whereConditions.append(s"datamanager = '${ datamanager.get }'")
+    if (ageInDays.nonEmpty) whereConditions.append(s"last_modified > NOW() - INTERVAL '${ ageInDays.get } days'")
 
     val query =
-      """
-        |SELECT
-        |  state_label,
-        |  count(*),
-        |  sum(storage_size_in_bytes)
-        |FROM deposit_properties
-        |GROUP BY state_label
-        |ORDER BY state_label
-        |""".stripMargin
+      s"""
+         |SELECT
+         |  state_label,
+         |  count(*),
+         |  sum(storage_size_in_bytes)
+         |FROM deposit_properties
+         |${
+        if (whereConditions.isEmpty) ""
+        else "WHERE " + whereConditions.mkString(" AND\n")
+      }
+         |GROUP BY state_label
+         |ORDER BY state_label
+         |""".stripMargin
 
     managed(c.prepareStatement(query))
       .map(ps => {
@@ -176,7 +183,6 @@ class DepositPropertiesTable(database: Database)(implicit val dansDoiPrefixes: L
       case NonFatal(e) => logger.error("Could perform select", e)
     }
   }
-
 
   private def selectUuid(uuid: String)(implicit c: Connection): Try[Option[String]] = {
     trace(uuid)
