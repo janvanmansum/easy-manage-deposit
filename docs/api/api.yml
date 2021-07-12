@@ -70,7 +70,5 @@ paths:
           description: OK. The `deposit.properties` were written to the dabase.
         201:
           description: Created. The `deposit.properties` were written to the dabase.
-        400:
-          description: Bad Request. Body was not in Java properties format or did not contain the minimally required fields.
         404:
           description: Not Found. The uuid referred to a deposit not found in the deposit area

@@ -26,7 +26,7 @@ class CommandLineOptions(args: Array[String], version: String) extends ScallopCo
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-manage-deposit"
   private val SUBCOMMAND_SEPARATOR = "---\n"
-  val description: String = s"""Manage DANS deposit directories."""
+  val description: String = s"""Manage the deposit area."""
   val synopsis: String =
     s"""
        |  $printedName report full [-a, --age <n>] [-m, --datamanager <uid>] [<depositor>]
